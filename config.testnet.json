@@ -1,0 +1,6 @@
+{
+  "fuel_host": "testnet.fuel.network",
+  "pangea_host": "fuel.beta.pangea.foundation",
+  "pangea_start_block": 13550000,
+  "market_id": "0xc5ed0d9b17beedd1c6c10a84bb496f12a5082aa3ce2ad55630bbcac22c64fcf4"
+}
