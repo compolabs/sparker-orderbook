@@ -4,30 +4,41 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = [".", "entity", "migration"]
+members = [".", "core", "entity", "migration", "rpc"]
 
 [workspace.dependencies]
 sea-orm = "1.1.0"
 serde = "1.0.210"
+prost = "0.13"
+tonic = "0.12.3"
+tonic-types = "0.12.3"
+utoipa = "5.1.3"
+chrono = "0.4.38"
+fuels = "0.66.9"
 
 [dependencies]
-entity = { path = "entity" }
+sparker-core = { path = "core" }
+sparker-entity = { path = "entity" }
+sparker-rpc = { path = "rpc" }
 thiserror = "1.0.62"
-tokio = { version = "1.4.0", features = ["rt", "macros", "time"] }
+tokio = { version = "1.4.0", features = ["rt-multi-thread", "macros", "time"] }
 axum = { version = "0.7.7", features = ["ws"] }
 sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono" ] }
-utoipa = { version = "5.1.3", features = ["axum_extras", "chrono"] }
+prost = { workspace = true }
+tonic = { workspace = true }
+utoipa = { workspace = true, features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
 utoipa-axum = "0.1.2"
 async-graphql = "7.0.9"
-chrono = { version = "0.4.38", features = ["serde"] }
+chrono = { workspace = true, features = ["serde"] }
 dotenv = "0.15.0"
 log = "0.4"
 env_logger = "0.11.5"
 futures = "0.3.30"
+strum = { version = "0.26", features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = "1.0.128"
-fuels = { version="0.66.9", features = ["fuel-core-lib"] }
+fuels = { workspace = true, features = ["fuel-core-lib"] }
 pangea-client = { git = "https://github.com/PangeaFoundation/pangea-client"}
 ethers-core = "2.0.14"
 rustc-hex = "2.1.0"

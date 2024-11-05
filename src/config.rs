@@ -6,9 +6,6 @@ use crate::error::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    /// Fuel host url
-    pub fuel_host: String,
-
     /// Pangea host url
     pub pangea_host: String,
 

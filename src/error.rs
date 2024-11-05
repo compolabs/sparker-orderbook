@@ -11,14 +11,20 @@ pub enum Error {
     #[error("Json: {0}")]
     SerdeJson(#[from] serde_json::Error),
 
-    #[error("Pangea: {0}")]
-    PangeaClient(#[from] pangea_client::Error),
-
     #[error("Database: {0}")]
     Database(#[from] sea_orm::DbErr),
 
+    #[error("Tonic: {0}")]
+    Tonic(#[from] tonic::transport::Error),
+
+    #[error("Pangea: {0}")]
+    PangeaClient(#[from] pangea_client::Error),
+
     #[error("Fuel: {0}")]
     Fuel(#[from] fuels::types::errors::Error),
+
+    #[error("Invalid fuel chain id")]
+    InvalidChainId,
 }
 
 #[derive(Error, Debug)]

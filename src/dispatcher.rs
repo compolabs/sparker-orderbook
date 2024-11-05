@@ -1,9 +1,7 @@
+use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
-use crate::{
-    models::{CreateOrder, CreateTrade, UpdateOrder},
-    repos::{OrderRepository, StateRepository, TradeRepository},
-};
+use crate::repo::{order, state, trade};
 
 pub enum OperationMessage {
     Add(Operation),
@@ -12,28 +10,20 @@ pub enum OperationMessage {
 }
 
 pub enum Operation {
-    CreateOrder { data: CreateOrder },
-    UpdateOrder { data: UpdateOrder },
-    CreateTrade { data: CreateTrade },
+    InsertOrder(sparker_core::InsertOrder),
+    UpdateOrder(sparker_core::UpdateOrder),
+    InsertTrade(sparker_core::InsertTrade),
 }
 
 pub struct OperationDispatcher {
-    order_repository: Arc<OrderRepository>,
-    trade_repository: Arc<TradeRepository>,
-    state_repository: Arc<StateRepository>,
+    db: Arc<DatabaseConnection>,
     operations: Vec<Operation>,
 }
 
 impl OperationDispatcher {
-    pub fn new(
-        order_repository: Arc<OrderRepository>,
-        trade_repository: Arc<TradeRepository>,
-        state_repository: Arc<StateRepository>,
-    ) -> Self {
+    pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
-            order_repository,
-            trade_repository,
-            state_repository,
+            db,
             operations: vec![],
         }
     }
@@ -43,32 +33,28 @@ impl OperationDispatcher {
     }
 
     pub async fn set_latest_processed_block(&mut self, block: i64) {
-        if let Err(e) = self
-            .state_repository
-            .upsert_latest_processed_block(block)
-            .await
-        {
+        if let Err(e) = state::Mutation::upsert_latest_processed_block(&self.db, block).await {
             log::error!("SET_LATEST_PROCESSED_BLOCK_ERROR: {}", e);
         }
     }
 
     pub async fn dispatch(&mut self) {
         let create_orders = self.extract_operations(|operation| {
-            if let Operation::CreateOrder { data } = operation {
+            if let Operation::InsertOrder(data) = operation {
                 Some(data.clone())
             } else {
                 None
             }
         });
         let update_orders = self.extract_operations(|operation| {
-            if let Operation::UpdateOrder { data } = operation {
+            if let Operation::UpdateOrder(data) = operation {
                 Some(data.clone())
             } else {
                 None
             }
         });
         let create_trades = self.extract_operations(|operation| {
-            if let Operation::CreateTrade { data } = operation {
+            if let Operation::InsertTrade(data) = operation {
                 Some(data.clone())
             } else {
                 None
@@ -76,23 +62,19 @@ impl OperationDispatcher {
         });
 
         // Insert many orders
-        if let Err(e) = self.order_repository.create_orders(create_orders).await {
+        if let Err(e) = order::Mutation::insert_many(&self.db, create_orders).await {
             log::error!("CREATE_ORDERS_ERROR: {}", e);
         }
 
         // Update orders
         for order in update_orders {
-            if let Err(e) = self
-                .order_repository
-                .update_order(&order.order_id.clone(), order)
-                .await
-            {
+            if let Err(e) = order::Mutation::update(&self.db, order).await {
                 log::error!("UPDATE_ORDER_ERROR: {}", e);
             }
         }
 
         // Create trades
-        if let Err(e) = self.trade_repository.create_trades(create_trades).await {
+        if let Err(e) = trade::Mutation::insert_many(&self.db, create_trades).await {
             log::error!("CREATE_TRADES_ERROR: {}", e);
         }
 

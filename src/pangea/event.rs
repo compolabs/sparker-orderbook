@@ -2,8 +2,7 @@ use chrono::DateTime;
 use ethers_core::k256::sha2::{Digest, Sha256};
 use rustc_hex::ToHex;
 use serde::{Deserialize, Serialize};
-
-use crate::models::{LimitType, Order, OrderStatus, OrderType, Trade};
+use sparker_core::{LimitType, Order, OrderStatus, OrderType, Trade};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PangeaEvent {
@@ -43,9 +42,9 @@ impl PangeaEvent {
         self.limit_type
             .as_deref()
             .and_then(|limit_type| match limit_type {
-                "GTC" => Some(LimitType::Gtc),
-                "IOC" => Some(LimitType::Ioc),
-                "FOK" => Some(LimitType::Fok),
+                "GTC" => Some(LimitType::GTC),
+                "IOC" => Some(LimitType::IOC),
+                "FOK" => Some(LimitType::FOK),
                 _ => None,
             })
     }

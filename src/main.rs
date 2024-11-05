@@ -1,18 +1,16 @@
-use std::sync::Arc;
-
 use dotenv::dotenv;
 use error::Error;
+use std::sync::Arc;
 use tokio::{
     signal::unix::{signal, SignalKind},
     sync::{mpsc::unbounded_channel, Mutex},
 };
 
 use crate::{
-    api::AppState,
     config::Config,
     dispatcher::{OperationDispatcher, OperationMessage},
     pangea::PangeaIndexer,
-    repos::{OrderRepository, StateRepository, TradeRepository},
+    repo::{order, state},
     store::Store,
 };
 
@@ -21,9 +19,9 @@ mod config;
 mod db;
 mod dispatcher;
 mod error;
-mod models;
 mod pangea;
-mod repos;
+mod repo;
+mod rpc;
 mod store;
 mod types;
 
@@ -32,30 +30,22 @@ async fn main() -> Result<(), Error> {
     dotenv().ok();
     env_logger::init();
 
-    let config = Config::load("config.testnet.json")?;
+    let config = Config::load("config.mainnet.json")?;
 
-    let db_conn = db::build_connection().await?;
-    let order_repository = Arc::new(OrderRepository::new(db_conn.clone()));
-    let trade_repository = Arc::new(TradeRepository::new(db_conn.clone()));
-    let state_repository = Arc::new(StateRepository::new(db_conn.clone()));
+    let db = db::build_connection().await?;
 
-    let latest_processed_block = state_repository
-        .latest_processed_block()
+    let latest_processed_block = state::Query::find_latest_processed_block(&db)
         .await?
         .unwrap_or(config.pangea_start_block);
-    let orders = order_repository.orders(10_000, 0).await?;
-
+    let orders = order::Query::find(&db, 1000, 0).await?;
     log::debug!("Orders: {:?}", orders.len());
 
     // Local store for order and trades
     let store = Arc::new(Mutex::new(Store::new(orders)));
+    let db = Arc::new(db);
 
     // ------------------ Start dispatcher ------------------
-    let mut operation_dispatcher = OperationDispatcher::new(
-        Arc::clone(&order_repository),
-        Arc::clone(&trade_repository),
-        Arc::clone(&state_repository),
-    );
+    let mut operation_dispatcher = OperationDispatcher::new(Arc::clone(&db));
     let (operation_tx, operation_rx) = unbounded_channel::<OperationMessage>();
     let operation_tx = Arc::new(operation_tx);
     let operation_rx = Arc::new(Mutex::new(operation_rx));
@@ -83,18 +73,13 @@ async fn main() -> Result<(), Error> {
         }
     });
 
+    // ------------------ Start RPC server ------------------
+    log::info!("Starting RPC server...");
+    tokio::spawn(rpc::serve(Arc::clone(&db)));
+
     // -------------------- Start API --------------------
     log::info!("Starting API...");
-    tokio::spawn(async move {
-        if let Err(e) = api::start(AppState {
-            order_repository: Arc::clone(&order_repository),
-            trade_repository: Arc::clone(&trade_repository),
-        })
-        .await
-        {
-            log::error!("Error while running API: {}", e);
-        }
-    });
+    tokio::spawn(api::serve(Arc::clone(&db)));
     // ---------------------------------------------------
 
     let mut sigint = signal(SignalKind::interrupt()).unwrap();

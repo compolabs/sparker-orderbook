@@ -1,0 +1,12 @@
+[package]
+name = "sparker-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sparker-entity = { path = "../entity" }
+sparker-rpc = { path = "../rpc" }
+utoipa = { workspace = true, features = ["axum_extras", "chrono"] }
+chrono = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
+spark-market-sdk = { git = "https://github.com/compolabs/orderbook-contract.git", branch = "master" }

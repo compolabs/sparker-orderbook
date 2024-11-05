@@ -5,6 +5,7 @@ use pangea_client::{
     provider::FuelProvider, query::Bound, requests::fuel::GetSparkOrderRequest, ChainId, Client,
     ClientBuilder, Format, WsProvider,
 };
+use sparker_core::{LimitType, OrderStatus, UpdateOrder};
 use std::{collections::HashSet, env, str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -12,20 +13,19 @@ use crate::{
     config::Config,
     dispatcher::{Operation, OperationMessage},
     error::Error,
-    models::{LimitType, OrderStatus, UpdateOrder},
     pangea::event::PangeaEvent,
     store::Store,
     types::Sender,
 };
 
 const BATCH_SIZE: u64 = 10_000;
-const CHAIN_ID: ChainId = ChainId::FUELTESTNET;
 
 pub struct PangeaIndexer {
     pangea_client: Client<WsProvider>,
     fuel_provider: Provider,
     operation_tx: Sender<OperationMessage>,
     store: Arc<Mutex<Store>>,
+    chain_id: ChainId,
     contract_h256: H256,
 }
 
@@ -35,6 +35,11 @@ impl PangeaIndexer {
         operation_tx: Sender<OperationMessage>,
         store: Arc<Mutex<Store>>,
     ) -> Result<Self, Error> {
+        let chain_id = match env::var("CHAIN_ID").unwrap().as_str() {
+            "FUEL" => ChainId::FUEL,
+            _ => ChainId::FUELTESTNET,
+        };
+
         let username = env::var("PANGEA_USERNAME").unwrap();
         let password = env::var("PANGEA_PASSWORD").unwrap();
 
@@ -44,7 +49,15 @@ impl PangeaIndexer {
             .build::<WsProvider>()
             .await?;
 
-        let fuel_provider = Provider::connect(config.fuel_host.as_str()).await?;
+        let provider_url = match chain_id {
+            ChainId::FUEL => Ok("mainnet.fuel.network"),
+            ChainId::FUELTESTNET => Ok("testnet.fuel.network"),
+            _ => Err(Error::InvalidChainId),
+        }?;
+
+        log::info!("CHAIN: {:?}, PROVIDER: {:?}", chain_id, provider_url);
+
+        let fuel_provider = Provider::connect(provider_url).await?;
 
         log::info!("Pangea client created.");
 
@@ -53,6 +66,7 @@ impl PangeaIndexer {
             fuel_provider,
             operation_tx,
             store,
+            chain_id,
             contract_h256: H256::from_str(&config.market_id.to_string())?,
         })
     }
@@ -67,8 +81,8 @@ impl PangeaIndexer {
             .fetch_historical_events(latest_processed_block, latest_block)
             .await?;
 
-        self.listen_events(latest_processed_block)
-            .await?;
+        log::info!("Listen events, from block: {}", latest_processed_block);
+        self.listen_events(latest_processed_block).await?;
 
         Ok(())
     }
@@ -85,7 +99,7 @@ impl PangeaIndexer {
                 from_block: Bound::Exact(latest_processed_block),
                 to_block: Bound::Exact(to_block),
                 market_id__in: HashSet::from([self.contract_h256]),
-                chains: HashSet::from([CHAIN_ID]),
+                chains: HashSet::from([self.chain_id]),
                 ..Default::default()
             };
 
@@ -129,16 +143,13 @@ impl PangeaIndexer {
         Ok(latest_processed_block)
     }
 
-    async fn listen_events(
-        &self,
-        mut latest_processed_block: i64,
-    ) -> Result<(), Error> {
+    async fn listen_events(&self, mut latest_processed_block: i64) -> Result<(), Error> {
         loop {
             let deltas_request = GetSparkOrderRequest {
                 from_block: Bound::Exact(latest_processed_block + 1),
                 to_block: Bound::Subscribe,
                 market_id__in: HashSet::from([self.contract_h256]),
-                chains: HashSet::from([CHAIN_ID]),
+                chains: HashSet::from([self.chain_id]),
                 ..Default::default()
             };
 
@@ -149,6 +160,8 @@ impl PangeaIndexer {
                 .expect("Failed to get fuel spark deltas");
             futures::pin_mut!(stream);
 
+            log::debug!("STREAM");
+
             while let Some(data) = stream.next().await {
                 match data {
                     Ok(data) => {
@@ -156,7 +169,11 @@ impl PangeaIndexer {
                         let event = serde_json::from_str::<PangeaEvent>(&data)?;
                         latest_processed_block = event.block_number;
 
+                        log::debug!("LATEST_PROCESSED_BLOCK: {}", latest_processed_block);
+
                         self.process_event(&event).await;
+                        self.operation_tx.send(OperationMessage::Dispatch).unwrap();
+
                         self.operation_tx
                             .send(OperationMessage::SetLatestProcessedBlock(
                                 latest_processed_block,
@@ -194,9 +211,7 @@ impl PangeaIndexer {
 
             store.insert_order(order.clone());
             self.operation_tx
-                .send(OperationMessage::Add(Operation::CreateOrder {
-                    data: order,
-                }))
+                .send(OperationMessage::Add(Operation::InsertOrder(order)))
                 .unwrap();
         }
     }
@@ -212,7 +227,7 @@ impl PangeaIndexer {
                 Some(order) => {
                     let trade_size = trade_size as u64;
                     let (status, amount) = match limit_type {
-                        LimitType::Gtc => {
+                        LimitType::GTC => {
                             if order.amount > trade_size {
                                 (
                                     OrderStatus::PartiallyMatched,
@@ -234,22 +249,18 @@ impl PangeaIndexer {
                         status: status.clone(),
                     });
                     self.operation_tx
-                        .send(OperationMessage::Add(Operation::UpdateOrder {
-                            data: UpdateOrder {
-                                order_id: event.order_id.clone(),
-                                amount,
-                                status,
-                            },
-                        }))
+                        .send(OperationMessage::Add(Operation::UpdateOrder(UpdateOrder {
+                            order_id: event.order_id.clone(),
+                            amount,
+                            status,
+                        })))
                         .unwrap();
 
                     // Create new trade
                     if let Some(trade) = event.build_trade() {
                         store.insert_trade(trade.clone());
                         self.operation_tx
-                            .send(OperationMessage::Add(Operation::CreateTrade {
-                                data: trade,
-                            }))
+                            .send(OperationMessage::Add(Operation::InsertTrade(trade)))
                             .unwrap();
                     }
                 }
@@ -272,26 +283,8 @@ impl PangeaIndexer {
 
             store.update_order(updated_order.clone());
             self.operation_tx
-                .send(OperationMessage::Add(Operation::UpdateOrder {
-                    data: updated_order,
-                }))
+                .send(OperationMessage::Add(Operation::UpdateOrder(updated_order)))
                 .unwrap();
         }
     }
 }
-
-// pub fn fetch_latest_processed_block(conn: &mut PgConnection) -> Result<i64, Error> {
-//     db::indexer_state(conn).map(|state| state.latest_processed_block)
-// }
-//
-// pub fn update_latest_processed_block(latest_processed_block: i64, conn: &mut PgConnection) {
-//     db::upsert_indexer_state(
-//         conn,
-//         UpdateIndexerState {
-//             id: 0,
-//             latest_processed_block,
-//             timestamp: std::time::SystemTime::now(),
-//         },
-//     )
-//     .expect("Could not update indexer state");
-// }

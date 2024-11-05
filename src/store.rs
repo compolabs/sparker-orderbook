@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-
-use crate::models::{Order, Trade, UpdateOrder};
+use sparker_core::{Order, Trade, UpdateOrder};
 
 pub struct Store {
     orders: HashMap<String, Order>,
