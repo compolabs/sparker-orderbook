@@ -9,4 +9,4 @@ sparker-rpc = { path = "../rpc" }
 utoipa = { workspace = true, features = ["axum_extras", "chrono"] }
 chrono = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
-spark-market-sdk = { git = "https://github.com/compolabs/orderbook-contract.git", branch = "master" }
+spark-market-sdk = { git = "https://github.com/compolabs/orderbook-contract.git", branch = "release-0.6.3" }

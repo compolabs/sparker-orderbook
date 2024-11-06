@@ -37,7 +37,7 @@ async fn main() -> Result<(), Error> {
     let latest_processed_block = state::Query::find_latest_processed_block(&db)
         .await?
         .unwrap_or(config.pangea_start_block);
-    let orders = order::Query::find(&db, 1000, 0).await?;
+    let orders = order::Query::find(&db, 10_000, 0).await?;
     log::debug!("Orders: {:?}", orders.len());
 
     // Local store for order and trades
