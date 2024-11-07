@@ -4,6 +4,7 @@ package order;
 
 service Orderbook {
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {}
+  rpc ListUserOrders(ListUserOrdersRequest) returns (ListOrdersResponse) {}
   rpc ListTrades(ListTradesRequest) returns (ListTradesResponse) {}
   rpc Spread(SpreadRequest) returns (SpreadResponse) {}
 }
@@ -16,6 +17,10 @@ message ListOrdersRequest {
   OrderType order_type = 1;
   uint64 limit = 2;
   optional string user_ne = 3;
+}
+message ListUserOrdersRequest {
+  string user = 1;
+  uint64 limit = 2;
 }
 message ListTradesRequest {
   uint64 limit = 1;

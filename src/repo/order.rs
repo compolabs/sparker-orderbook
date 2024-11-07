@@ -73,6 +73,24 @@ impl Query {
         Ok(orders)
     }
 
+    pub async fn find_by_user(
+        db: &DatabaseConnection,
+        user: String,
+        limit: u64,
+        offset: u64,
+    ) -> Result<Vec<Order>, Error> {
+        let orders = OrderEntity::find()
+            .filter(order::Column::User.eq(user))
+            .order_by_desc(order::Column::Timestamp)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
+            .await?;
+        let orders = orders.into_iter().map(Order::from).collect();
+
+        Ok(orders)
+    }
+
     pub async fn find_by_type(
         db: &DatabaseConnection,
         order_type: OrderType,
@@ -194,10 +212,8 @@ fn find_condition(order_type: OrderTypeSea, user_ne: Option<String>) -> Conditio
         .add(order::Column::OrderType.eq(order_type));
 
     // Exclude orders by user
-    let condition = match user_ne {
+    match user_ne {
         Some(user) => condition.add(order::Column::User.ne(user)),
         None => condition,
-    };
-
-    condition
+    }
 }

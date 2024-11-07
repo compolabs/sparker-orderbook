@@ -2,8 +2,8 @@ use sea_orm::DatabaseConnection;
 use sparker_rpc::proto::{
     self,
     orderbook_server::{Orderbook, OrderbookServer},
-    ListOrdersRequest, ListOrdersResponse, ListTradesRequest, ListTradesResponse, SpreadRequest,
-    SpreadResponse,
+    ListOrdersRequest, ListOrdersResponse, ListTradesRequest, ListTradesResponse,
+    ListUserOrdersRequest, SpreadRequest, SpreadResponse,
 };
 use std::{net::SocketAddr, sync::Arc};
 use tonic::{transport::Server, Request, Response, Status};
@@ -36,6 +36,26 @@ impl Orderbook for RpcServer {
         }
         .unwrap();
 
+        let orders = orders
+            .into_iter()
+            .map(|order| order.into())
+            .collect::<Vec<proto::Order>>();
+
+        let response = ListOrdersResponse { orders };
+        Ok(Response::new(response))
+    }
+
+    async fn list_user_orders(
+        &self,
+        request: Request<ListUserOrdersRequest>,
+    ) -> Result<Response<ListOrdersResponse>, Status> {
+        let request = request.into_inner();
+        let limit = request.limit;
+        let user = request.user;
+
+        let orders = order::Query::find_by_user(&self.db, user, limit, 0)
+            .await
+            .unwrap();
         let orders = orders
             .into_iter()
             .map(|order| order.into())
