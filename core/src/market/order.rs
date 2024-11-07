@@ -6,7 +6,7 @@ use sparker_entity::sea_orm_active_enums;
 use sparker_rpc::proto;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub enum OrderType {
     Buy,
     Sell,
@@ -66,7 +66,7 @@ impl From<OrderType> for proto::OrderType {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub enum OrderStatus {
     Cancelled,
     Failed,
@@ -190,6 +190,12 @@ impl From<Order> for proto::Order {
             timestamp: order.timestamp.and_utc().timestamp() as u64,
             market_id: order.market_id,
         }
+    }
+}
+
+impl Order {
+    pub fn is_active(&self) -> bool {
+        self.status == OrderStatus::New || self.status == OrderStatus::PartiallyMatched
     }
 }
 
