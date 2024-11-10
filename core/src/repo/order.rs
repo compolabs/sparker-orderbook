@@ -1,14 +1,13 @@
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect, Set,
+    sea_query::OnConflict, ColumnTrait, Condition, DatabaseConnection, DbErr as Error, EntityTrait,
+    QueryFilter, QueryOrder, QuerySelect, Set,
 };
-use sparker_core::{InsertOrder, Order, OrderType, UpdateOrder};
 use sparker_entity::{
     order::{self, Entity as OrderEntity},
     sea_orm_active_enums::{OrderStatus as OrderStatusSea, OrderType as OrderTypeSea},
 };
 
-use crate::error::Error;
+use crate::types::{Order, OrderType, UpdateOrder};
 
 pub struct Query;
 impl Query {
@@ -118,7 +117,7 @@ impl Query {
 
 pub struct Mutation;
 impl Mutation {
-    pub async fn insert(db: &DatabaseConnection, data: InsertOrder) -> Result<(), Error> {
+    pub async fn insert(db: &DatabaseConnection, data: Order) -> Result<(), Error> {
         let order = order::ActiveModel {
             tx_id: Set(data.tx_id),
             order_id: Set(data.order_id),
@@ -144,7 +143,7 @@ impl Mutation {
         Ok(())
     }
 
-    pub async fn insert_many(db: &DatabaseConnection, data: Vec<InsertOrder>) -> Result<(), Error> {
+    pub async fn insert_many(db: &DatabaseConnection, data: Vec<Order>) -> Result<(), Error> {
         let len = data.len();
         if len == 0 {
             return Ok(());
@@ -170,13 +169,12 @@ impl Mutation {
         let on_conflict = OnConflict::column(order::Column::OrderId)
             .do_nothing()
             .to_owned();
-        let res = OrderEntity::insert_many(orders)
+
+        OrderEntity::insert_many(orders)
             .on_conflict(on_conflict)
             .do_nothing()
             .exec(db)
             .await?;
-
-        log::debug!("DB | CREATE_ORDERS: {} | {:?}", len, res);
 
         Ok(())
     }

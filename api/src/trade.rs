@@ -4,11 +4,10 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use sparker_core::Trade;
+use sparker_core::{repo::trade, Trade};
 use utoipa::IntoParams;
 
-use super::api::{internal_error, AppState};
-use crate::repo::trade;
+use crate::{internal_error, AppState};
 
 #[derive(Deserialize, IntoParams)]
 pub struct ListTradesParams {

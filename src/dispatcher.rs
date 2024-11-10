@@ -1,7 +1,6 @@
 use sea_orm::DatabaseConnection;
+use sparker_core::repo::{order, state, trade};
 use std::sync::Arc;
-
-use crate::repo::{order, state, trade};
 
 pub enum OperationMessage {
     Add(Operation),
@@ -10,9 +9,9 @@ pub enum OperationMessage {
 }
 
 pub enum Operation {
-    InsertOrder(sparker_core::InsertOrder),
+    InsertOrder(sparker_core::Order),
     UpdateOrder(sparker_core::UpdateOrder),
-    InsertTrade(sparker_core::InsertTrade),
+    InsertTrade(sparker_core::Trade),
 }
 
 pub struct OperationDispatcher {

@@ -54,12 +54,9 @@ impl PangeaIndexer {
             ChainId::FUELTESTNET => Ok("testnet.fuel.network"),
             _ => Err(Error::InvalidChainId),
         }?;
-
-        log::info!("CHAIN: {:?}, PROVIDER: {:?}", chain_id, provider_url);
-
         let fuel_provider = Provider::connect(provider_url).await?;
 
-        log::info!("Pangea client created.");
+        log::info!("CHAIN: {:?}, PROVIDER: {:?}", chain_id, provider_url);
 
         Ok(Self {
             pangea_client,
@@ -246,7 +243,7 @@ impl PangeaIndexer {
                     store.update_order(UpdateOrder {
                         order_id: event.order_id.clone(),
                         amount,
-                        status: status.clone(),
+                        status,
                     });
                     self.operation_tx
                         .send(OperationMessage::Add(Operation::UpdateOrder(UpdateOrder {

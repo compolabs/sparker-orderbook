@@ -4,32 +4,33 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = [".", "core", "entity", "migration", "rpc"]
+resolver = "2"
+members = [".", "api", "core", "entity", "migration", "rpc"]
 
 [workspace.dependencies]
 sea-orm = "1.1.0"
 serde = "1.0.210"
+tokio = "1.4.0"
 prost = "0.13"
 tonic = "0.12.3"
 tonic-types = "0.12.3"
 utoipa = "5.1.3"
 chrono = "0.4.38"
 fuels = "0.66.9"
+spark-market-sdk = { git = "https://github.com/compolabs/orderbook-contract.git", branch = "release-0.6.5" }
+sparker-core = { path = "core" }
+sparker-rpc = { path = "rpc" }
+sparker-entity = { path = "entity" }
 
 [dependencies]
-sparker-core = { path = "core" }
-sparker-entity = { path = "entity" }
-sparker-rpc = { path = "rpc" }
+sparker-core = { workspace = true, features = ["with-sea", "with-proto"] }
+sparker-entity = { workspace = true }
+sparker-rpc = { workspace = true }
 thiserror = "1.0.62"
-tokio = { version = "1.4.0", features = ["rt-multi-thread", "macros", "time"] }
-axum = { version = "0.7.7", features = ["ws"] }
-sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono" ] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }
 prost = { workspace = true }
 tonic = { workspace = true }
-utoipa = { workspace = true, features = ["axum_extras", "chrono"] }
-utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
-utoipa-axum = "0.1.2"
-async-graphql = "7.0.9"
 chrono = { workspace = true, features = ["serde"] }
 dotenv = "0.15.0"
 log = "0.4"

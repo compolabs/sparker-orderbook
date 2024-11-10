@@ -1,5 +1,6 @@
 use dotenv::dotenv;
 use error::Error;
+use sparker_core::repo::{order, state};
 use std::sync::Arc;
 use tokio::{
     signal::unix::{signal, SignalKind},
@@ -10,17 +11,14 @@ use crate::{
     config::Config,
     dispatcher::{OperationDispatcher, OperationMessage},
     pangea::PangeaIndexer,
-    repo::{order, state},
     store::Store,
 };
 
-mod api;
 mod config;
 mod db;
 mod dispatcher;
 mod error;
 mod pangea;
-mod repo;
 mod rpc;
 mod store;
 mod types;
@@ -73,13 +71,9 @@ async fn main() -> Result<(), Error> {
         }
     });
 
-    // ------------------ Start RPC server ------------------
+    // ----------------- Start RPC server -----------------
     log::info!("Starting RPC server...");
     tokio::spawn(rpc::serve(Arc::clone(&db)));
-
-    // -------------------- Start API --------------------
-    log::info!("Starting API...");
-    tokio::spawn(api::serve(Arc::clone(&db)));
     // ---------------------------------------------------
 
     let mut sigint = signal(SignalKind::interrupt()).unwrap();

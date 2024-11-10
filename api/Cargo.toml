@@ -1,0 +1,16 @@
+[package]
+name = "sparker-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sparker-core = { workspace = true, features = ["with-utoipa", "with-sea"] }
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }
+axum = { version = "0.7.7", features = ["ws"] }
+utoipa = { workspace = true, features = ["axum_extras", "chrono"] }
+utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
+utoipa-axum = "0.1.2"
+dotenv = "0.15.0"
+env_logger = "0.11.5"

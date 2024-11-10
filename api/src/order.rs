@@ -4,11 +4,10 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
-use sparker_core::{Order, OrderType};
+use sparker_core::{repo::order, Order, OrderType};
 use utoipa::{IntoParams, ToSchema};
 
-use super::api::{internal_error, AppState};
-use crate::repo::order;
+use crate::{internal_error, AppState};
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Spread {

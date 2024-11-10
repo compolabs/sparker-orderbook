@@ -1,8 +1,6 @@
 use chrono::Utc;
-use sea_orm::{sea_query::OnConflict, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{sea_query::OnConflict, DatabaseConnection, DbErr as Error, EntityTrait, Set};
 use sparker_entity::state::{self, Entity as StateEntity};
-
-use crate::error::Error;
 
 pub struct Query;
 impl Query {

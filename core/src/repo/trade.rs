@@ -1,10 +1,10 @@
 use sea_orm::{
-    sea_query::OnConflict, DatabaseConnection, EntityTrait, QueryOrder, QuerySelect, Set,
+    sea_query::OnConflict, DatabaseConnection, DbErr as Error, EntityTrait, QueryOrder,
+    QuerySelect, Set,
 };
-use sparker_core::{InsertTrade, Trade};
 use sparker_entity::trade::{self, Entity as TradeEntity};
 
-use crate::error::Error;
+use crate::types::Trade;
 
 pub struct Query;
 impl Query {
@@ -27,7 +27,7 @@ impl Query {
 
 pub struct Mutation;
 impl Mutation {
-    pub async fn insert(db: &DatabaseConnection, data: InsertTrade) -> Result<(), Error> {
+    pub async fn insert(db: &DatabaseConnection, data: Trade) -> Result<(), Error> {
         let trade = trade::ActiveModel {
             tx_id: Set(data.tx_id),
             trade_id: Set(data.trade_id),
@@ -51,7 +51,7 @@ impl Mutation {
         Ok(())
     }
 
-    pub async fn insert_many(db: &DatabaseConnection, data: Vec<InsertTrade>) -> Result<(), Error> {
+    pub async fn insert_many(db: &DatabaseConnection, data: Vec<Trade>) -> Result<(), Error> {
         let len = data.len();
         if len == 0 {
             return Ok(());
@@ -75,13 +75,12 @@ impl Mutation {
         let on_conflict = OnConflict::column(trade::Column::TradeId)
             .do_nothing()
             .to_owned();
-        let res = TradeEntity::insert_many(trades)
+
+        TradeEntity::insert_many(trades)
             .on_conflict(on_conflict)
             .do_nothing()
             .exec(db)
             .await?;
-
-        log::debug!("DB | CREATE_TRADES: {} | {:?}", len, res);
 
         Ok(())
     }

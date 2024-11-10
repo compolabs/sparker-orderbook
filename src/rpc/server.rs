@@ -1,4 +1,5 @@
 use sea_orm::DatabaseConnection;
+use sparker_core::repo::{order, trade};
 use sparker_rpc::proto::{
     self,
     orderbook_server::{Orderbook, OrderbookServer},
@@ -8,10 +9,7 @@ use sparker_rpc::proto::{
 use std::{net::SocketAddr, sync::Arc};
 use tonic::{transport::Server, Request, Response, Status};
 
-use crate::{
-    error::Error,
-    repo::{order, trade},
-};
+use crate::error::Error;
 
 pub struct RpcServer {
     db: Arc<DatabaseConnection>,
