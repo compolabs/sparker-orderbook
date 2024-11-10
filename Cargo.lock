@@ -7190,7 +7190,7 @@ dependencies = [
  "serde",
  "spark-market-sdk",
  "sparker-entity",
- "sparker-rpc",
+ "sparker-proto",
  "utoipa",
 ]
 
@@ -7222,7 +7222,7 @@ dependencies = [
  "serde_json",
  "sparker-core",
  "sparker-entity",
- "sparker-rpc",
+ "sparker-proto",
  "strum 0.26.3",
  "thiserror",
  "tokio",
@@ -7238,7 +7238,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sparker-rpc"
+name = "sparker-proto"
 version = "0.1.0"
 dependencies = [
  "prost",

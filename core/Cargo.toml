@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sparker-rpc = { workspace = true, optional = true }
+sparker-proto = { workspace = true, optional = true }
 sparker-entity = { workspace = true, optional = true }
 utoipa = { workspace = true, features = ["axum_extras", "chrono"], optional = true }
 chrono = { workspace = true, features = ["serde"] }
@@ -14,6 +14,6 @@ sea-orm = { workspace = true, optional = true }
 
 [features]
 default = []
-with-proto = ["sparker-rpc"]
+with-proto = ["sparker-proto"]
 with-sea = ["sea-orm", "sparker-entity"]
 with-utoipa = ["utoipa"]

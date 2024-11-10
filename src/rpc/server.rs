@@ -1,6 +1,6 @@
 use sea_orm::DatabaseConnection;
 use sparker_core::repo::{order, trade};
-use sparker_rpc::proto::{
+use sparker_proto::proto::{
     self,
     orderbook_server::{Orderbook, OrderbookServer},
     ListOrdersRequest, ListOrdersResponse, ListTradesRequest, ListTradesResponse,

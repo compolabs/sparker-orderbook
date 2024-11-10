@@ -42,7 +42,7 @@ mod with_sea {
 mod with_proto {
     use super::*;
     use chrono::DateTime;
-    use sparker_rpc::proto;
+    use sparker_proto::proto;
 
     impl From<proto::Trade> for Trade {
         fn from(trade: proto::Trade) -> Self {

@@ -5,7 +5,7 @@ edition = "2021"
 
 [workspace]
 resolver = "2"
-members = [".", "api", "core", "entity", "migration", "rpc"]
+members = [".", "api", "core", "entity", "migration", "proto"]
 
 [workspace.dependencies]
 sea-orm = "1.1.0"
@@ -19,13 +19,13 @@ chrono = "0.4.38"
 fuels = "0.66.9"
 spark-market-sdk = { git = "https://github.com/compolabs/orderbook-contract.git", branch = "release-0.6.5" }
 sparker-core = { path = "core" }
-sparker-rpc = { path = "rpc" }
+sparker-proto = { path = "proto" }
 sparker-entity = { path = "entity" }
 
 [dependencies]
 sparker-core = { workspace = true, features = ["with-sea", "with-proto"] }
 sparker-entity = { workspace = true }
-sparker-rpc = { workspace = true }
+sparker-proto = { workspace = true }
 thiserror = "1.0.62"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }

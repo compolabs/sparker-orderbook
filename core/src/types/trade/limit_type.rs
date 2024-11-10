@@ -56,7 +56,7 @@ mod with_sea {
 #[cfg(feature = "with-proto")]
 mod with_proto {
     use super::*;
-    use sparker_rpc::proto;
+    use sparker_proto::proto;
 
     impl From<proto::LimitType> for LimitType {
         fn from(limit_type: proto::LimitType) -> Self {
