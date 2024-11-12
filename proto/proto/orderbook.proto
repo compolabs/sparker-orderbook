@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package order;
+package orderbook;
 
 service Orderbook {
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {}

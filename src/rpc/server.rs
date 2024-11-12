@@ -12,7 +12,7 @@ use tonic::{transport::Server, Request, Response, Status};
 use crate::error::Error;
 
 pub struct RpcServer {
-    db: Arc<DatabaseConnection>,
+    db_conn: Arc<DatabaseConnection>,
 }
 
 #[tonic::async_trait]
@@ -28,9 +28,9 @@ impl Orderbook for RpcServer {
 
         let orders = match order_type {
             Some(order_type) => {
-                order::Query::find_by_type(&self.db, order_type.into(), limit, 0, user_ne).await
+                order::Query::find_by_type(&self.db_conn, order_type.into(), limit, 0, user_ne).await
             }
-            None => order::Query::find(&self.db, limit, 0).await,
+            None => order::Query::find(&self.db_conn, limit, 0).await,
         }
         .unwrap();
 
@@ -51,7 +51,7 @@ impl Orderbook for RpcServer {
         let limit = request.limit;
         let user = request.user;
 
-        let orders = order::Query::find_by_user(&self.db, user, limit, 0)
+        let orders = order::Query::find_by_user(&self.db_conn, user, limit, 0)
             .await
             .unwrap();
         let orders = orders
@@ -69,11 +69,11 @@ impl Orderbook for RpcServer {
     ) -> Result<Response<SpreadResponse>, Status> {
         let request = request.into_inner();
         let user_ne = request.user_ne;
-        let best_bid = order::Query::find_best_bid(&self.db, user_ne.clone())
+        let best_bid = order::Query::find_best_bid(&self.db_conn, user_ne.clone())
             .await
             .unwrap()
             .map(|o| o.into());
-        let best_ask = order::Query::find_best_ask(&self.db, user_ne)
+        let best_ask = order::Query::find_best_ask(&self.db_conn, user_ne)
             .await
             .unwrap()
             .map(|o| o.into());
@@ -89,7 +89,7 @@ impl Orderbook for RpcServer {
         let request = request.into_inner();
         let limit = request.limit;
 
-        let trades = trade::Query::find(&self.db, limit, 0).await.unwrap();
+        let trades = trade::Query::find(&self.db_conn, limit, 0).await.unwrap();
         let trades = trades
             .into_iter()
             .map(|trade| trade.into())
@@ -100,10 +100,10 @@ impl Orderbook for RpcServer {
     }
 }
 
-pub async fn serve(db: Arc<DatabaseConnection>) -> Result<(), Error> {
+pub async fn serve(db_conn: Arc<DatabaseConnection>) -> Result<(), Error> {
     let addr = SocketAddr::from(([127, 0, 0, 1], 50051));
 
-    let rpc_server = RpcServer { db };
+    let rpc_server = RpcServer { db_conn };
     Server::builder()
         .add_service(OrderbookServer::new(rpc_server))
         .serve(addr)

@@ -5,9 +5,9 @@ use sparker_entity::state::{self, Entity as StateEntity};
 pub struct Query;
 impl Query {
     pub async fn find_latest_processed_block(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
     ) -> Result<Option<i64>, Error> {
-        let state = StateEntity::find().one(db).await?;
+        let state = StateEntity::find().one(db_conn).await?;
 
         Ok(state.map(|state| state.latest_processed_block))
     }
@@ -16,12 +16,12 @@ impl Query {
 pub struct Mutation;
 impl Mutation {
     pub async fn upsert_latest_processed_block(
-        db: &DatabaseConnection,
-        latest_processed_block: i64,
+        db_conn: &DatabaseConnection,
+        block: i64,
     ) -> Result<(), Error> {
         let state = state::ActiveModel {
             id: Set(0),
-            latest_processed_block: Set(latest_processed_block),
+            latest_processed_block: Set(block),
             timestamp: Set(Utc::now().naive_utc()),
         };
 
@@ -30,7 +30,7 @@ impl Mutation {
             .to_owned();
         StateEntity::insert(state)
             .on_conflict(on_conflict)
-            .exec(db)
+            .exec(db_conn)
             .await?;
 
         Ok(())

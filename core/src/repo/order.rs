@@ -12,13 +12,13 @@ use crate::types::{Order, OrderType, UpdateOrder};
 pub struct Query;
 impl Query {
     pub async fn find_best_bid(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
         user_ne: Option<String>,
     ) -> Result<Option<Order>, Error> {
         let order = OrderEntity::find()
             .filter(find_condition(OrderTypeSea::Buy, user_ne))
             .order_by_desc(order::Column::Price)
-            .one(db)
+            .one(db_conn)
             .await?;
 
         let order = order.map(Order::from);
@@ -27,13 +27,13 @@ impl Query {
     }
 
     pub async fn find_best_ask(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
         user_ne: Option<String>,
     ) -> Result<Option<Order>, Error> {
         let order = OrderEntity::find()
             .filter(find_condition(OrderTypeSea::Sell, user_ne))
             .order_by_asc(order::Column::Price)
-            .one(db)
+            .one(db_conn)
             .await?;
 
         let order = order.map(Order::from);
@@ -42,12 +42,12 @@ impl Query {
     }
 
     pub async fn find_by_id(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
         order_id: &str,
     ) -> Result<Option<Order>, Error> {
         let order = OrderEntity::find()
             .filter(order::Column::OrderId.eq(order_id))
-            .one(db)
+            .one(db_conn)
             .await?;
 
         let order = order.map(Order::from);
@@ -56,7 +56,7 @@ impl Query {
     }
 
     pub async fn find(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
         limit: u64,
         offset: u64,
     ) -> Result<Vec<Order>, Error> {
@@ -65,7 +65,7 @@ impl Query {
             .order_by_desc(order::Column::Timestamp)
             .offset(offset)
             .limit(limit)
-            .all(db)
+            .all(db_conn)
             .await?;
         let orders = orders.into_iter().map(Order::from).collect();
 
@@ -73,7 +73,7 @@ impl Query {
     }
 
     pub async fn find_by_user(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
         user: String,
         limit: u64,
         offset: u64,
@@ -83,7 +83,7 @@ impl Query {
             .order_by_desc(order::Column::Timestamp)
             .offset(offset)
             .limit(limit)
-            .all(db)
+            .all(db_conn)
             .await?;
         let orders = orders.into_iter().map(Order::from).collect();
 
@@ -91,7 +91,7 @@ impl Query {
     }
 
     pub async fn find_by_type(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
         order_type: OrderType,
         limit: u64,
         offset: u64,
@@ -107,7 +107,7 @@ impl Query {
         }
         .offset(offset)
         .limit(limit)
-        .all(db)
+        .all(db_conn)
         .await?;
         let orders = orders.into_iter().map(Order::from).collect();
 
@@ -117,7 +117,7 @@ impl Query {
 
 pub struct Mutation;
 impl Mutation {
-    pub async fn insert(db: &DatabaseConnection, data: Order) -> Result<(), Error> {
+    pub async fn insert(db_conn: &DatabaseConnection, data: Order) -> Result<(), Error> {
         let order = order::ActiveModel {
             tx_id: Set(data.tx_id),
             order_id: Set(data.order_id),
@@ -137,13 +137,13 @@ impl Mutation {
         OrderEntity::insert(order)
             .on_conflict(on_conflict)
             .do_nothing()
-            .exec(db)
+            .exec(db_conn)
             .await?;
 
         Ok(())
     }
 
-    pub async fn insert_many(db: &DatabaseConnection, data: Vec<Order>) -> Result<(), Error> {
+    pub async fn insert_many(db_conn: &DatabaseConnection, data: Vec<Order>) -> Result<(), Error> {
         let len = data.len();
         if len == 0 {
             return Ok(());
@@ -173,16 +173,16 @@ impl Mutation {
         OrderEntity::insert_many(orders)
             .on_conflict(on_conflict)
             .do_nothing()
-            .exec(db)
+            .exec(db_conn)
             .await?;
 
         Ok(())
     }
 
-    pub async fn update(db: &DatabaseConnection, data: UpdateOrder) -> Result<Order, Error> {
+    pub async fn update(db_conn: &DatabaseConnection, data: UpdateOrder) -> Result<Order, Error> {
         let order = OrderEntity::find()
             .filter(order::Column::OrderId.eq(data.order_id))
-            .one(db)
+            .one(db_conn)
             .await?;
         let mut order: order::ActiveModel = order.unwrap().into();
 
@@ -191,7 +191,7 @@ impl Mutation {
         }
         order.status = Set(data.status.into());
 
-        let order = OrderEntity::update(order).exec(db).await?;
+        let order = OrderEntity::update(order).exec(db_conn).await?;
 
         Ok(Order::from(order))
     }

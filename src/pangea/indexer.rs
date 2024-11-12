@@ -5,16 +5,13 @@ use pangea_client::{
     provider::FuelProvider, query::Bound, requests::fuel::GetSparkOrderRequest, ChainId, Client,
     ClientBuilder, Format, WsProvider,
 };
-use sparker_core::{LimitType, OrderStatus, UpdateOrder};
-use std::{collections::HashSet, env, str::FromStr, sync::Arc};
-use tokio::sync::Mutex;
+use std::{collections::HashSet, env, str::FromStr};
 
 use crate::{
     config::Config,
-    dispatcher::{Operation, OperationMessage},
     error::Error,
+    operation::{Operation, OperationMessage},
     pangea::event::PangeaEvent,
-    store::Store,
     types::Sender,
 };
 
@@ -24,7 +21,6 @@ pub struct PangeaIndexer {
     pangea_client: Client<WsProvider>,
     fuel_provider: Provider,
     operation_tx: Sender<OperationMessage>,
-    store: Arc<Mutex<Store>>,
     chain_id: ChainId,
     contract_h256: H256,
 }
@@ -33,7 +29,6 @@ impl PangeaIndexer {
     pub async fn create(
         config: &Config,
         operation_tx: Sender<OperationMessage>,
-        store: Arc<Mutex<Store>>,
     ) -> Result<Self, Error> {
         let chain_id = match env::var("CHAIN_ID").unwrap().as_str() {
             "FUEL" => ChainId::FUEL,
@@ -62,21 +57,18 @@ impl PangeaIndexer {
             pangea_client,
             fuel_provider,
             operation_tx,
-            store,
             chain_id,
             contract_h256: H256::from_str(&config.market_id.to_string())?,
         })
     }
 
     pub async fn start(&self, latest_processed_block: i64) -> Result<(), Error> {
+        // Get latest block number from blockchain
         let latest_block = self.fuel_provider.latest_block_height().await.unwrap() as i64;
 
-        log::debug!("LATEST_PROCESSED_BLOCK: {}", latest_processed_block);
-
+        log::info!("Lastest processed block: {}", latest_processed_block);
         log::info!("Fetch historical events, until block: {}", latest_block);
-        let latest_processed_block = self
-            .fetch_historical_events(latest_processed_block, latest_block)
-            .await?;
+        let latest_processed_block = self.catch_up(latest_processed_block, latest_block).await?;
 
         log::info!("Listen events, from block: {}", latest_processed_block);
         self.listen_events(latest_processed_block).await?;
@@ -84,13 +76,25 @@ impl PangeaIndexer {
         Ok(())
     }
 
-    pub async fn fetch_historical_events(
+    /// Catches up the processing of blocks from the latest processed block to the latest block
+    /// from blockchain.
+    ///
+    /// # Arguments
+    ///
+    /// * `latest_processed_block` - Latest processed block number.
+    /// * `to_block` - The block number until which to fetch historical events.
+    ///
+    /// # Returns
+    ///
+    /// Returns the block number of the latest processed block after catching up.
+    ///
+    pub async fn catch_up(
         &self,
         mut latest_processed_block: i64,
-        latest_block: i64,
+        to_block: i64,
     ) -> Result<i64, Error> {
-        while latest_processed_block < latest_block {
-            let to_block = (latest_processed_block + BATCH_SIZE as i64).min(latest_block);
+        while latest_processed_block < to_block {
+            let to_block = (latest_processed_block + BATCH_SIZE as i64).min(to_block);
 
             let batch_request = GetSparkOrderRequest {
                 from_block: Bound::Exact(latest_processed_block),
@@ -115,7 +119,7 @@ impl PangeaIndexer {
                         latest_processed_block = event.block_number;
 
                         // Process event with collecting operations to dispatch
-                        self.process_event(&event).await;
+                        self.handle_event(&event).await;
                     }
                     Err(e) => {
                         log::error!("Error in the stream of historical events: {e}");
@@ -125,21 +129,26 @@ impl PangeaIndexer {
             }
 
             // Dispatch operations
-            self.operation_tx.send(OperationMessage::Dispatch).unwrap();
+            self.operation_tx
+                .send(OperationMessage::Dispatch(latest_processed_block))
+                .unwrap();
 
             log::debug!("PROCESSED: {}", latest_processed_block);
             latest_processed_block = to_block;
         }
 
-        self.operation_tx
-            .send(OperationMessage::SetLatestProcessedBlock(
-                latest_processed_block,
-            ))
-            .unwrap();
-
         Ok(latest_processed_block)
     }
 
+    /// Listens for new events and processes them in real-time.
+    ///
+    /// If an error occurs while processing the stream of events, it logs the error and attempts to reconnect
+    /// after a short delay.
+    ///
+    /// # Arguments
+    ///
+    /// * `latest_processed_block` - The block number of the latest processed block.
+    ///
     async fn listen_events(&self, mut latest_processed_block: i64) -> Result<(), Error> {
         loop {
             let deltas_request = GetSparkOrderRequest {
@@ -157,8 +166,6 @@ impl PangeaIndexer {
                 .expect("Failed to get fuel spark deltas");
             futures::pin_mut!(stream);
 
-            log::debug!("STREAM");
-
             while let Some(data) = stream.next().await {
                 match data {
                     Ok(data) => {
@@ -168,13 +175,9 @@ impl PangeaIndexer {
 
                         log::debug!("LATEST_PROCESSED_BLOCK: {}", latest_processed_block);
 
-                        self.process_event(&event).await;
-                        self.operation_tx.send(OperationMessage::Dispatch).unwrap();
-
+                        self.handle_event(&event).await;
                         self.operation_tx
-                            .send(OperationMessage::SetLatestProcessedBlock(
-                                latest_processed_block,
-                            ))
+                            .send(OperationMessage::Dispatch(latest_processed_block))
                             .unwrap();
                     }
                     Err(e) => {
@@ -189,99 +192,43 @@ impl PangeaIndexer {
         }
     }
 
-    pub async fn process_event(&self, event: &PangeaEvent) {
+    /// Handles a Pangea event by dispatching the appropriate operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `event` - A reference to the `PangeaEvent` to be handled.
+    ///
+    /// # Errors
+    ///
+    /// Logs an error if the event type is unknown.
+    pub async fn handle_event(&self, event: &PangeaEvent) {
         if let Some(event_type) = event.event_type.as_deref() {
             match event_type {
-                "Open" => self.process_open(event).await,
-                "Trade" => self.process_trade(event).await,
-                "Cancel" => self.process_cancel(event).await,
+                "Open" => {
+                    if let Some(order) = event.build_order() {
+                        self.operation_tx
+                            .send(OperationMessage::Add(Operation::OpenOrder(order)))
+                            .unwrap();
+                    }
+                }
+                "Trade" => {
+                    if let Some(trade) = event.build_trade() {
+                        self.operation_tx
+                            .send(OperationMessage::Add(Operation::Trade(trade)))
+                            .unwrap();
+                    }
+                }
+                "Cancel" => {
+                    self.operation_tx
+                        .send(OperationMessage::Add(Operation::CancelOrder(
+                            event.order_id.clone(),
+                        )))
+                        .unwrap();
+                }
                 _ => {
                     log::error!("UNKNOWN_EVENT_TYPE: {}", event_type);
                 }
             }
-        }
-    }
-
-    pub async fn process_open(&self, event: &PangeaEvent) {
-        if let Some(order) = event.build_order() {
-            let mut store = self.store.lock().await;
-
-            store.insert_order(order.clone());
-            self.operation_tx
-                .send(OperationMessage::Add(Operation::InsertOrder(order)))
-                .unwrap();
-        }
-    }
-
-    pub async fn process_trade(&self, event: &PangeaEvent) {
-        if let Some(trade_size) = event.amount {
-            let limit_type = event.limit_type().expect("INVALID_LIMIT_TYPE");
-
-            let mut store = self.store.lock().await;
-            let order = store.order(&event.order_id);
-
-            match order {
-                Some(order) => {
-                    let trade_size = trade_size as u64;
-                    let (status, amount) = match limit_type {
-                        LimitType::GTC => {
-                            if order.amount > trade_size {
-                                (
-                                    OrderStatus::PartiallyMatched,
-                                    Some(order.amount - trade_size),
-                                )
-                            } else {
-                                // Fully matched
-                                (OrderStatus::Matched, None)
-                            }
-                        }
-                        // FOK or IOC as fully matched
-                        _ => (OrderStatus::Matched, None),
-                    };
-
-                    // Update order
-                    store.update_order(UpdateOrder {
-                        order_id: event.order_id.clone(),
-                        amount,
-                        status,
-                    });
-                    self.operation_tx
-                        .send(OperationMessage::Add(Operation::UpdateOrder(UpdateOrder {
-                            order_id: event.order_id.clone(),
-                            amount,
-                            status,
-                        })))
-                        .unwrap();
-
-                    // Create new trade
-                    if let Some(trade) = event.build_trade() {
-                        store.insert_trade(trade.clone());
-                        self.operation_tx
-                            .send(OperationMessage::Add(Operation::InsertTrade(trade)))
-                            .unwrap();
-                    }
-                }
-                None => {
-                    log::error!("ORDER_NOT_FOUND: {}", event.order_id);
-                }
-            }
-        }
-    }
-
-    pub async fn process_cancel(&self, event: &PangeaEvent) {
-        let mut store = self.store.lock().await;
-        let order = store.order(&event.order_id);
-        if order.is_some() {
-            let updated_order = UpdateOrder {
-                order_id: event.order_id.clone(),
-                amount: None,
-                status: OrderStatus::Cancelled,
-            };
-
-            store.update_order(updated_order.clone());
-            self.operation_tx
-                .send(OperationMessage::Add(Operation::UpdateOrder(updated_order)))
-                .unwrap();
         }
     }
 }

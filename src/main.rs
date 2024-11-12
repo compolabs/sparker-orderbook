@@ -1,6 +1,6 @@
 use dotenv::dotenv;
 use error::Error;
-use sparker_core::repo::{order, state};
+use sparker_core::repo::state;
 use std::sync::Arc;
 use tokio::{
     signal::unix::{signal, SignalKind},
@@ -9,18 +9,16 @@ use tokio::{
 
 use crate::{
     config::Config,
-    dispatcher::{OperationDispatcher, OperationMessage},
+    operation::{OperationDispatcher, OperationMessage},
     pangea::PangeaIndexer,
-    store::Store,
 };
 
 mod config;
 mod db;
-mod dispatcher;
 mod error;
+mod operation;
 mod pangea;
 mod rpc;
-mod store;
 mod types;
 
 #[tokio::main]
@@ -30,40 +28,28 @@ async fn main() -> Result<(), Error> {
 
     let config = Config::load("config.mainnet.json")?;
 
-    let db = db::build_connection().await?;
-
-    let latest_processed_block = state::Query::find_latest_processed_block(&db)
-        .await?
-        .unwrap_or(config.pangea_start_block);
-    let orders = order::Query::find(&db, 10_000, 0).await?;
-    log::debug!("Orders: {:?}", orders.len());
-
-    // Local store for order and trades
-    let store = Arc::new(Mutex::new(Store::new(orders)));
-    let db = Arc::new(db);
+    let db_conn = db::build_connection().await?;
+    let db_conn = Arc::new(db_conn);
 
     // ------------------ Start dispatcher ------------------
-    let mut operation_dispatcher = OperationDispatcher::new(Arc::clone(&db));
     let (operation_tx, operation_rx) = unbounded_channel::<OperationMessage>();
     let operation_tx = Arc::new(operation_tx);
     let operation_rx = Arc::new(Mutex::new(operation_rx));
 
+    let operation_dispatcher =
+        OperationDispatcher::new(Arc::clone(&db_conn), Arc::clone(&operation_rx));
     tokio::spawn(async move {
-        while let Some(message) = operation_rx.lock().await.recv().await {
-            match message {
-                OperationMessage::Add(operation) => operation_dispatcher.add(operation).await,
-                OperationMessage::SetLatestProcessedBlock(block) => {
-                    operation_dispatcher.set_latest_processed_block(block).await
-                }
-                OperationMessage::Dispatch => operation_dispatcher.dispatch().await,
-            }
-        }
+        operation_dispatcher.start().await;
     });
 
     // ------------------ Start indexer ------------------
     log::info!("Starting indexer...");
-    let indexer =
-        PangeaIndexer::create(&config, Arc::clone(&operation_tx), Arc::clone(&store)).await?;
+    let indexer = PangeaIndexer::create(&config, Arc::clone(&operation_tx)).await?;
+
+    // Get the latest processed block from the database
+    let latest_processed_block = state::Query::find_latest_processed_block(&db_conn)
+        .await?
+        .unwrap_or(config.pangea_start_block);
 
     tokio::spawn(async move {
         if let Err(e) = indexer.start(latest_processed_block).await {
@@ -73,7 +59,7 @@ async fn main() -> Result<(), Error> {
 
     // ----------------- Start RPC server -----------------
     log::info!("Starting RPC server...");
-    tokio::spawn(rpc::serve(Arc::clone(&db)));
+    tokio::spawn(rpc::serve(Arc::clone(&db_conn)));
     // ---------------------------------------------------
 
     let mut sigint = signal(SignalKind::interrupt()).unwrap();

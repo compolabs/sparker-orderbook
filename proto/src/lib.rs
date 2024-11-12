@@ -1,3 +1,3 @@
 pub mod proto {
-    tonic::include_proto!("order");
+    tonic::include_proto!("orderbook");
 }

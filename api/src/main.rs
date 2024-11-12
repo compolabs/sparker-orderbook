@@ -18,7 +18,7 @@ mod trade;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Arc<DatabaseConnection>,
+    pub db_conn: Arc<DatabaseConnection>,
 }
 
 #[tokio::main]
@@ -26,15 +26,15 @@ async fn main() {
     dotenv().ok();
     env_logger::init();
 
-    let db = db::build_connection()
+    let db_conn = db::build_connection()
         .await
         .expect("Failed to connect to database");
-    let db = Arc::new(db);
+    let db_conn = Arc::new(db_conn);
 
-    serve(db).await;
+    serve(db_conn).await;
 }
 
-pub async fn serve(db: Arc<DatabaseConnection>) {
+pub async fn serve(db_conn: Arc<DatabaseConnection>) {
     let app = Router::new()
         .route("/orders/list", get(list_orders))
         .route("/orders/spread", get(spread))
@@ -42,7 +42,7 @@ pub async fn serve(db: Arc<DatabaseConnection>) {
         .route("/orders/best-ask", get(best_ask))
         .route("/trades/list", get(list_trades))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .with_state(AppState { db });
+        .with_state(AppState { db_conn });
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     let listener = tokio::net::TcpListener::bind(addr)

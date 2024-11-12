@@ -9,7 +9,7 @@ use crate::types::Trade;
 pub struct Query;
 impl Query {
     pub async fn find(
-        db: &DatabaseConnection,
+        db_conn: &DatabaseConnection,
         limit: u64,
         offset: u64,
     ) -> Result<Vec<Trade>, Error> {
@@ -17,7 +17,7 @@ impl Query {
             .order_by_desc(trade::Column::Timestamp)
             .offset(offset)
             .limit(limit)
-            .all(db)
+            .all(db_conn)
             .await?;
         let trades = trades.into_iter().map(Trade::from).collect();
 
@@ -27,7 +27,7 @@ impl Query {
 
 pub struct Mutation;
 impl Mutation {
-    pub async fn insert(db: &DatabaseConnection, data: Trade) -> Result<(), Error> {
+    pub async fn insert(db_conn: &DatabaseConnection, data: Trade) -> Result<(), Error> {
         let trade = trade::ActiveModel {
             tx_id: Set(data.tx_id),
             trade_id: Set(data.trade_id),
@@ -45,13 +45,13 @@ impl Mutation {
         TradeEntity::insert(trade)
             .on_conflict(on_conflict)
             .do_nothing()
-            .exec(db)
+            .exec(db_conn)
             .await?;
 
         Ok(())
     }
 
-    pub async fn insert_many(db: &DatabaseConnection, data: Vec<Trade>) -> Result<(), Error> {
+    pub async fn insert_many(db_conn: &DatabaseConnection, data: Vec<Trade>) -> Result<(), Error> {
         let len = data.len();
         if len == 0 {
             return Ok(());
@@ -79,7 +79,7 @@ impl Mutation {
         TradeEntity::insert_many(trades)
             .on_conflict(on_conflict)
             .do_nothing()
-            .exec(db)
+            .exec(db_conn)
             .await?;
 
         Ok(())

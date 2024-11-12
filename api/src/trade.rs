@@ -27,11 +27,11 @@ pub struct ListTradesParams {
 )]
 pub async fn list_trades(
     Query(ListTradesParams { limit, offset }): Query<ListTradesParams>,
-    State(AppState { db, .. }): State<AppState>,
+    State(AppState { db_conn, .. }): State<AppState>,
 ) -> Result<Json<Vec<Trade>>, (StatusCode, String)> {
     let limit = limit.unwrap_or(50);
     let offset = offset.unwrap_or(0);
-    let res = trade::Query::find(&db, limit, offset)
+    let res = trade::Query::find(&db_conn, limit, offset)
         .await
         .map_err(internal_error)?;
 
