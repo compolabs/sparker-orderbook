@@ -16,6 +16,8 @@ pub struct Model {
     pub size: i64,
     pub price: i64,
     pub limit_type: LimitType,
+    pub user: String,
+    pub block_number: i64,
     pub timestamp: DateTime,
     pub market_id: String,
 }

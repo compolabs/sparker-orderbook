@@ -30,6 +30,7 @@ impl MigrationTrait for Migration {
                         Alias::new("order_status"),
                         OrderStatusVariants::iter(),
                     ))
+                    .col(big_integer(Order::BlockNumber))
                     .col(timestamp(Order::Timestamp))
                     .col(string(Order::MarketId))
                     .to_owned(),

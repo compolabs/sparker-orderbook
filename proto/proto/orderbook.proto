@@ -55,8 +55,9 @@ message Order {
   uint64 amount = 6;
   uint64 price = 7;
   OrderStatus status = 8;
-  uint64 timestamp = 9;
-  string market_id = 10;
+  uint64 block_number = 9;
+  uint64 timestamp = 10;
+  string market_id = 11;
 }
 
 enum LimitType {
@@ -70,9 +71,11 @@ message Trade {
   string trade_id = 2;
   string order_id = 3;
   LimitType limit_type = 4;
-  uint64 size = 5;
-  uint64 price = 6;
-  uint64 timestamp = 7;
-  string market_id = 8;
+  string user = 5;
+  uint64 size = 6;
+  uint64 price = 7;
+  uint64 block_number = 8;
+  uint64 timestamp = 9;
+  string market_id = 10;
 }
 

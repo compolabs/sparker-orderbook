@@ -19,6 +19,7 @@ pub struct Model {
     pub amount: i64,
     pub price: i64,
     pub status: OrderStatus,
+    pub block_number: i64,
     pub timestamp: DateTime,
     pub market_id: String,
 }

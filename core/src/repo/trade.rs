@@ -23,6 +23,19 @@ impl Query {
 
         Ok(trades)
     }
+
+    // pub async fn stream_by_user(
+    //     db_conn: &DatabaseConnection,
+    //     user: String,
+    // ) -> Result<(), Error> {
+    //     let mut stream = TradeEntity::find()
+    //         .filter(trade::Column::User.eq(user))
+    //         .order_by_desc(trade::Column::Timestamp)
+    //         .stream(db_conn)
+    //         .await?;
+    //
+    //     Ok(())
+    // }
 }
 
 pub struct Mutation;
@@ -33,10 +46,12 @@ impl Mutation {
             trade_id: Set(data.trade_id),
             order_id: Set(data.order_id),
             limit_type: Set(data.limit_type.into()),
+            user: Set(data.user),
             size: Set(data.size as i64),
             price: Set(data.price as i64),
             timestamp: Set(data.timestamp),
             market_id: Set(data.market_id),
+            block_number: Set(data.block_number as i64),
             ..Default::default()
         };
         let on_conflict = OnConflict::column(trade::Column::TradeId)
@@ -64,10 +79,12 @@ impl Mutation {
                 trade_id: Set(trade.trade_id),
                 order_id: Set(trade.order_id),
                 limit_type: Set(trade.limit_type.into()),
+                user: Set(trade.user),
                 size: Set(trade.size as i64),
                 price: Set(trade.price as i64),
                 timestamp: Set(trade.timestamp),
                 market_id: Set(trade.market_id),
+                block_number: Set(trade.block_number as i64),
                 ..Default::default()
             })
             .collect::<Vec<trade::ActiveModel>>();

@@ -25,6 +25,8 @@ impl MigrationTrait for Migration {
                         Alias::new("limit_type"),
                         LimitTypeVariants::iter(),
                     ))
+                    .col(string(Trade::User))
+                    .col(big_integer(Trade::BlockNumber))
                     .col(timestamp(Trade::Timestamp))
                     .col(string(Trade::MarketId))
                     .foreign_key(

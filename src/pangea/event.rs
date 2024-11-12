@@ -79,6 +79,7 @@ impl PangeaEvent {
                 amount: amount as u64,
                 price: price as u64,
                 status: OrderStatus::New,
+                block_number: self.block_number as u64,
                 timestamp: DateTime::from_timestamp(self.block_timestamp, 0)
                     .unwrap()
                     .naive_utc(),
@@ -96,8 +97,10 @@ impl PangeaEvent {
                 trade_id: self.trade_id(),
                 order_id: self.order_id.clone(),
                 limit_type: self.limit_type().unwrap(),
+                user: self.user.as_deref().unwrap().to_owned(),
                 size: amount as u64,
                 price: price as u64,
+                block_number: self.block_number as u64,
                 timestamp: DateTime::from_timestamp(self.block_timestamp, 0)
                     .unwrap()
                     .naive_utc(),

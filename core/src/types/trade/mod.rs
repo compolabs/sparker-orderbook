@@ -12,8 +12,10 @@ pub struct Trade {
     pub trade_id: String,
     pub order_id: String,
     pub limit_type: LimitType,
+    pub user: String,
     pub size: u64,
     pub price: u64,
+    pub block_number: u64,
     pub timestamp: NaiveDateTime,
     pub market_id: String,
 }
@@ -29,8 +31,10 @@ mod with_sea {
                 trade_id: trade.trade_id,
                 order_id: trade.order_id,
                 limit_type: trade.limit_type.into(),
+                user: trade.user,
                 size: trade.size as u64,
                 price: trade.price as u64,
+                block_number: trade.block_number as u64,
                 timestamp: trade.timestamp,
                 market_id: trade.market_id,
             }
@@ -53,8 +57,10 @@ mod with_proto {
                 trade_id: trade.trade_id,
                 order_id: trade.order_id,
                 limit_type: limit_type.into(),
+                user: trade.user,
                 size: trade.size,
                 price: trade.price,
+                block_number: trade.block_number,
                 timestamp: DateTime::from_timestamp(trade.timestamp as i64, 0)
                     .unwrap()
                     .naive_utc(),
@@ -70,8 +76,10 @@ mod with_proto {
                 trade_id: trade.trade_id,
                 order_id: trade.order_id,
                 limit_type: proto::LimitType::from(trade.limit_type) as i32,
+                user: trade.user,
                 size: trade.size,
                 price: trade.price,
+                block_number: trade.block_number,
                 timestamp: trade.timestamp.and_utc().timestamp() as u64,
                 market_id: trade.market_id,
             }

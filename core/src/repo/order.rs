@@ -127,6 +127,7 @@ impl Mutation {
             amount: Set(data.amount as i64),
             price: Set(data.price as i64),
             status: Set(data.status.into()),
+            block_number: Set(data.block_number as i64),
             timestamp: Set(data.timestamp),
             market_id: Set(data.market_id),
             ..Default::default()
@@ -160,6 +161,7 @@ impl Mutation {
                 amount: Set(order.amount as i64),
                 price: Set(order.price as i64),
                 status: Set(order.status.into()),
+                block_number: Set(order.block_number as i64),
                 timestamp: Set(order.timestamp),
                 market_id: Set(order.market_id),
                 ..Default::default()

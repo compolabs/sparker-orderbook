@@ -19,8 +19,10 @@ pub enum Trade {
     TradeId,
     OrderId,
     LimitType,
+    User,
     Size,
     Price,
+    BlockNumber,
     Timestamp,
     MarketId,
 }

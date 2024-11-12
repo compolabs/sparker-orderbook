@@ -18,6 +18,7 @@ pub struct Order {
     pub amount: u64,
     pub price: u64,
     pub status: OrderStatus,
+    pub block_number: u64,
     pub timestamp: NaiveDateTime,
     pub market_id: String,
 }
@@ -37,6 +38,7 @@ mod with_sea {
                 amount: order.amount as u64,
                 price: order.price as u64,
                 status: order.status.into(),
+                block_number: order.block_number as u64,
                 timestamp: order.timestamp,
                 market_id: order.market_id,
             }
@@ -64,6 +66,7 @@ mod with_proto {
                 amount: order.amount,
                 price: order.price,
                 status: status.into(),
+                block_number: order.block_number,
                 timestamp: DateTime::from_timestamp(order.timestamp as i64, 0)
                     .unwrap()
                     .naive_utc(),
@@ -83,6 +86,7 @@ mod with_proto {
                 amount: order.amount,
                 price: order.price,
                 status: proto::OrderStatus::from(order.status) as i32,
+                block_number: order.block_number,
                 timestamp: order.timestamp.and_utc().timestamp() as u64,
                 market_id: order.market_id,
             }

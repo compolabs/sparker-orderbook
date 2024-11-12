@@ -34,6 +34,7 @@ pub enum Order {
     Amount,
     Price,
     Status,
+    BlockNumber,
     Timestamp,
     MarketId,
 }
