@@ -1,18 +1,23 @@
 use sea_orm::DatabaseConnection;
 use sparker_core::repo::{order, trade};
-use sparker_proto::proto::{
-    self,
-    orderbook_server::{Orderbook, OrderbookServer},
-    ListOrdersRequest, ListOrdersResponse, ListTradesRequest, ListTradesResponse,
-    ListUserOrdersRequest, SpreadRequest, SpreadResponse,
+use sparker_proto::{
+    api::{
+        orderbook_server::{Orderbook, OrderbookServer},
+        ListOrderUpdatesRequest, ListOrderUpdatesResponse, ListOrdersRequest, ListOrdersResponse,
+        ListTradesRequest, ListTradesResponse, SpreadRequest, SpreadResponse,
+    },
+    types as proto,
 };
 use std::{net::SocketAddr, sync::Arc};
+use tokio::sync::{broadcast, mpsc};
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-use crate::error::Error;
+use crate::{error::Error, events::Event};
 
 pub struct RpcServer {
     db_conn: Arc<DatabaseConnection>,
+    events: broadcast::Sender<Event>,
 }
 
 #[tonic::async_trait]
@@ -28,7 +33,8 @@ impl Orderbook for RpcServer {
 
         let orders = match order_type {
             Some(order_type) => {
-                order::Query::find_by_type(&self.db_conn, order_type.into(), limit, 0, user_ne).await
+                order::Query::find_by_type(&self.db_conn, order_type.into(), limit, 0, user_ne)
+                    .await
             }
             None => order::Query::find(&self.db_conn, limit, 0).await,
         }
@@ -43,24 +49,33 @@ impl Orderbook for RpcServer {
         Ok(Response::new(response))
     }
 
-    async fn list_user_orders(
+    type ListOrderUpdatesStream = ReceiverStream<Result<ListOrderUpdatesResponse, Status>>;
+    async fn list_order_updates(
         &self,
-        request: Request<ListUserOrdersRequest>,
-    ) -> Result<Response<ListOrdersResponse>, Status> {
+        request: Request<ListOrderUpdatesRequest>,
+    ) -> Result<Response<Self::ListOrderUpdatesStream>, Status> {
         let request = request.into_inner();
-        let limit = request.limit;
         let user = request.user;
+        let mut events_rx = self.events.subscribe();
 
-        let orders = order::Query::find_by_user(&self.db_conn, user, limit, 0)
-            .await
-            .unwrap();
-        let orders = orders
-            .into_iter()
-            .map(|order| order.into())
-            .collect::<Vec<proto::Order>>();
+        let (tx, rx) = mpsc::channel(4);
 
-        let response = ListOrdersResponse { orders };
-        Ok(Response::new(response))
+        tokio::spawn(async move {
+            while let Ok(event) = events_rx.recv().await {
+                match event {
+                    // Only care about user order updates
+                    Event::OrderUpdated(order) if order.user == user => {
+                        let response = ListOrderUpdatesResponse {
+                            order: Some(order.into()),
+                        };
+                        let _ = tx.send(Ok(response)).await;
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 
     async fn spread(
@@ -78,7 +93,7 @@ impl Orderbook for RpcServer {
             .unwrap()
             .map(|o| o.into());
 
-        let response = proto::SpreadResponse { best_bid, best_ask };
+        let response = SpreadResponse { best_bid, best_ask };
         Ok(Response::new(response))
     }
 
@@ -100,12 +115,14 @@ impl Orderbook for RpcServer {
     }
 }
 
-pub async fn serve(db_conn: Arc<DatabaseConnection>) -> Result<(), Error> {
+pub async fn serve(
+    db_conn: Arc<DatabaseConnection>,
+    events: broadcast::Sender<Event>,
+) -> Result<(), Error> {
     let addr = SocketAddr::from(([127, 0, 0, 1], 50051));
 
-    let rpc_server = RpcServer { db_conn };
     Server::builder()
-        .add_service(OrderbookServer::new(rpc_server))
+        .add_service(OrderbookServer::new(RpcServer { db_conn, events }))
         .serve(addr)
         .await?;
 

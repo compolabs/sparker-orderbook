@@ -1,0 +1,49 @@
+syntax = "proto3";
+package orderbook.types;
+
+enum OrderType {
+  BUY = 0;
+  SELL = 1;
+}
+
+enum OrderStatus {
+  CANCELLED = 0;
+  FAILED = 1;
+  MATCHED = 2;
+  NEW = 3;
+  PARTIALLY_MATCHED = 4;
+}
+
+message Order {
+  string tx_id = 1;
+  string order_id = 2;
+  OrderType order_type = 3;
+  string user = 4;
+  string asset = 5;
+  uint64 amount = 6;
+  uint64 price = 7;
+  OrderStatus status = 8;
+  uint64 block_number = 9;
+  uint64 timestamp = 10;
+  string market_id = 11;
+}
+
+enum LimitType {
+  GTC = 0;
+  IOC = 1;
+  FOK = 2;
+}
+
+message Trade {
+  string tx_id = 1;
+  string trade_id = 2;
+  string order_id = 3;
+  LimitType limit_type = 4;
+  string user = 5;
+  uint64 size = 6;
+  uint64 price = 7;
+  uint64 block_number = 8;
+  uint64 timestamp = 9;
+  string market_id = 10;
+}
+

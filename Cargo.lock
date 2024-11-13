@@ -7226,6 +7226,7 @@ dependencies = [
  "strum 0.26.3",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tonic",
 ]
 
@@ -7242,10 +7243,10 @@ name = "sparker-proto"
 version = "0.1.0"
 dependencies = [
  "prost",
+ "prost-types",
  "strum 0.26.3",
  "tonic",
  "tonic-build",
- "tonic-types",
 ]
 
 [[package]]
@@ -8026,17 +8027,6 @@ dependencies = [
  "prost-types",
  "quote",
  "syn 2.0.86",
-]
-
-[[package]]
-name = "tonic-types"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0081d8ee0847d01271392a5aebe960a4600f5d4da6c67648a6382a0940f8b367"
-dependencies = [
- "prost",
- "prost-types",
- "tonic",
 ]
 
 [[package]]

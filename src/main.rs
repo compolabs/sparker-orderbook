@@ -16,6 +16,7 @@ use crate::{
 mod config;
 mod db;
 mod error;
+mod events;
 mod operation;
 mod pangea;
 mod rpc;
@@ -31,13 +32,18 @@ async fn main() -> Result<(), Error> {
     let db_conn = db::build_connection().await?;
     let db_conn = Arc::new(db_conn);
 
-    // ------------------ Start dispatcher ------------------
+    let events = events::broadcast_channel();
+
+    // -------------- Start operation dispatcher --------------
     let (operation_tx, operation_rx) = unbounded_channel::<OperationMessage>();
     let operation_tx = Arc::new(operation_tx);
     let operation_rx = Arc::new(Mutex::new(operation_rx));
 
-    let operation_dispatcher =
-        OperationDispatcher::new(Arc::clone(&db_conn), Arc::clone(&operation_rx));
+    let operation_dispatcher = OperationDispatcher::new(
+        Arc::clone(&db_conn),
+        Arc::clone(&operation_rx),
+        events.clone(),
+    );
     tokio::spawn(async move {
         operation_dispatcher.start().await;
     });
@@ -59,7 +65,7 @@ async fn main() -> Result<(), Error> {
 
     // ----------------- Start RPC server -----------------
     log::info!("Starting RPC server...");
-    tokio::spawn(rpc::serve(Arc::clone(&db_conn)));
+    tokio::spawn(rpc::serve(Arc::clone(&db_conn), events.clone()));
     // ---------------------------------------------------
 
     let mut sigint = signal(SignalKind::interrupt()).unwrap();

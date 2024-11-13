@@ -52,7 +52,7 @@ mod with_sea {
 #[cfg(feature = "with-proto")]
 mod with_proto {
     use super::*;
-    use sparker_proto::proto;
+    use sparker_proto::types as proto;
 
     impl From<proto::OrderType> for OrderType {
         fn from(order_type: proto::OrderType) -> Self {

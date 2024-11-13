@@ -1,81 +1,54 @@
 syntax = "proto3";
+package orderbook.api;
 
-package orderbook;
+import "types.proto";
 
 service Orderbook {
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {}
-  rpc ListUserOrders(ListUserOrdersRequest) returns (ListOrdersResponse) {}
+  rpc ListOrderUpdates(ListOrderUpdatesRequest) returns (stream ListOrderUpdatesResponse) {}
+
   rpc ListTrades(ListTradesRequest) returns (ListTradesResponse) {}
+
   rpc Spread(SpreadRequest) returns (SpreadResponse) {}
 }
 
+// Requests
+
 message Empty {}
+
 message SpreadRequest {
   optional string user_ne = 1;
 }
+
 message ListOrdersRequest {
-  OrderType order_type = 1;
+  types.OrderType order_type = 1;
   uint64 limit = 2;
   optional string user_ne = 3;
 }
-message ListUserOrdersRequest {
+
+message ListOrderUpdatesRequest {
   string user = 1;
-  uint64 limit = 2;
 }
+
 message ListTradesRequest {
   uint64 limit = 1;
 }
 
-message ListOrdersResponse { repeated Order orders = 1; }
-message ListTradesResponse { repeated Trade trades = 1; }
+// Responses
+
+message ListOrdersResponse {
+  repeated types.Order orders = 1;
+}
+
+message ListOrderUpdatesResponse {
+  types.Order order = 1;
+}
+
+message ListTradesResponse {
+  repeated types.Trade trades = 1;
+}
+
 message SpreadResponse {
-  Order best_bid = 1;
-  Order best_ask = 2;
+  types.Order best_bid = 1;
+  types.Order best_ask = 2;
 }
-
-enum OrderType {
-  BUY = 0;
-  SELL = 1;
-}
-
-enum OrderStatus {
-  CANCELLED = 0;
-  FAILED = 1;
-  MATCHED = 2;
-  NEW = 3;
-  PARTIALLY_MATCHED = 4;
-}
-
-message Order {
-  string tx_id = 1;
-  string order_id = 2;
-  OrderType order_type = 3;
-  string user = 4;
-  string asset = 5;
-  uint64 amount = 6;
-  uint64 price = 7;
-  OrderStatus status = 8;
-  uint64 block_number = 9;
-  uint64 timestamp = 10;
-  string market_id = 11;
-}
-
-enum LimitType {
-  GTC = 0;
-  IOC = 1;
-  FOK = 2;
-}
-
-message Trade {
-  string tx_id = 1;
-  string trade_id = 2;
-  string order_id = 3;
-  LimitType limit_type = 4;
-  string user = 5;
-  uint64 size = 6;
-  uint64 price = 7;
-  uint64 block_number = 8;
-  uint64 timestamp = 9;
-  string market_id = 10;
-}
-

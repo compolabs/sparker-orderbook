@@ -11,9 +11,10 @@ members = [".", "api", "core", "entity", "migration", "proto"]
 sea-orm = "1.1.0"
 serde = "1.0.210"
 tokio = "1.4.0"
+tokio-stream = "0.1.16"
 prost = "0.13"
+prost-types = "0.13"
 tonic = "0.12.3"
-tonic-types = "0.12.3"
 utoipa = "5.1.3"
 chrono = "0.4.38"
 fuels = "0.66.9"
@@ -28,6 +29,7 @@ sparker-entity = { workspace = true }
 sparker-proto = { workspace = true }
 thiserror = "1.0.62"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+tokio-stream = { workspace = true }
 sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }
 prost = { workspace = true }
 tonic = { workspace = true }

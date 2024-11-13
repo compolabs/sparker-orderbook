@@ -1,9 +1,9 @@
 use sea_orm::DatabaseConnection;
 use sparker_core::{repo, LimitType, Order, OrderStatus, Trade, UpdateOrder};
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 
-use crate::types::Receiver;
+use crate::{events::Event, types::Receiver};
 
 pub enum OperationMessage {
     Add(Operation),
@@ -20,14 +20,20 @@ pub struct OperationDispatcher {
     db_conn: Arc<DatabaseConnection>,
     operations: Mutex<Vec<Operation>>,
     operation_rx: Receiver<OperationMessage>,
+    events: broadcast::Sender<Event>,
 }
 
 impl OperationDispatcher {
-    pub fn new(db_conn: Arc<DatabaseConnection>, operation_rx: Receiver<OperationMessage>) -> Self {
+    pub fn new(
+        db_conn: Arc<DatabaseConnection>,
+        operation_rx: Receiver<OperationMessage>,
+        events: broadcast::Sender<Event>,
+    ) -> Self {
         Self {
             db_conn,
             operations: Mutex::new(Vec::new()),
             operation_rx,
+            events,
         }
     }
 
@@ -174,7 +180,7 @@ impl OperationDispatcher {
                         _ => (OrderStatus::Matched, None),
                     };
 
-                    if let Err(e) = repo::order::Mutation::update(
+                    match repo::order::Mutation::update(
                         &self.db_conn,
                         UpdateOrder {
                             order_id: trade.order_id.clone(),
@@ -184,7 +190,10 @@ impl OperationDispatcher {
                     )
                     .await
                     {
-                        log::error!("UPDATE_ORDER_ERROR: {}", e);
+                        Ok(_) => {
+                            let _ = self.events.send(Event::OrderUpdated(order));
+                        }
+                        Err(e) => log::error!("UPDATE_ORDER_ERROR: {}", e),
                     }
                 }
                 None => {

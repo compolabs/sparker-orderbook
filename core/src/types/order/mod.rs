@@ -50,7 +50,7 @@ mod with_sea {
 mod with_proto {
     use super::*;
     use chrono::DateTime;
-    use sparker_proto::proto;
+    use sparker_proto::types as proto;
 
     impl From<proto::Order> for Order {
         fn from(order: proto::Order) -> Self {
