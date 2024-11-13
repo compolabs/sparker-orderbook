@@ -133,7 +133,7 @@ impl OperationDispatcher {
     ///
     async fn process_cancel_orders(&self, order_ids: Vec<String>) {
         for order_id in order_ids {
-            if let Err(e) = repo::order::Mutation::update(
+            match repo::order::Mutation::update(
                 &self.db_conn,
                 UpdateOrder {
                     order_id,
@@ -143,7 +143,10 @@ impl OperationDispatcher {
             )
             .await
             {
-                log::error!("UPDATE_ORDER_ERROR: {}", e);
+                Ok(order) => {
+                    let _ = self.events.send(Event::OrderUpdated(order));
+                }
+                Err(e) => log::error!("UPDATE_ORDER_ERROR: {}", e),
             }
         }
     }
@@ -190,7 +193,7 @@ impl OperationDispatcher {
                     )
                     .await
                     {
-                        Ok(_) => {
+                        Ok(order) => {
                             let _ = self.events.send(Event::OrderUpdated(order));
                         }
                         Err(e) => log::error!("UPDATE_ORDER_ERROR: {}", e),
