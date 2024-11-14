@@ -1,10 +1,17 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "with-utoipa", derive(utoipa::ToSchema))]
 pub enum OrderType {
     Buy,
     Sell,
+}
+
+impl fmt::Display for OrderType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl From<spark_market_sdk::OrderType> for OrderType {
