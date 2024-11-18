@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "with-utoipa", derive(utoipa::ToSchema))]
@@ -6,6 +7,12 @@ pub enum LimitType {
     GTC,
     IOC,
     FOK,
+}
+
+impl fmt::Display for LimitType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl From<spark_market_sdk::LimitType> for LimitType {
