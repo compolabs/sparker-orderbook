@@ -205,8 +205,13 @@ impl OperationDispatcher {
             }
         }
 
-        if let Err(e) = repo::trade::Mutation::insert_many(&self.db_conn, trades).await {
-            log::error!("CREATE_TRADES_ERROR: {}", e);
+        match repo::trade::Mutation::insert_many(&self.db_conn, trades.clone()).await {
+            Ok(_) => {
+                for trade in trades {
+                    let _ = self.events.send(Event::Traded(trade));
+                }
+            }
+            Err(e) => log::error!("CREATE_TRADES_ERROR: {}", e),
         }
     }
 }

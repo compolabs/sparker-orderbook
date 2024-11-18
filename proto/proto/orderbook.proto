@@ -4,10 +4,11 @@ package orderbook.api;
 import "types.proto";
 
 service Orderbook {
-  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {}
-  rpc ListOrderUpdates(ListOrderUpdatesRequest) returns (stream ListOrderUpdatesResponse) {}
+  rpc ListOrders(OrdersRequest) returns (OrdersResponse) {}
+  rpc SubscribeOrderUpdates(OrderRequest) returns (stream OrderResponse) {}
 
-  rpc ListTrades(ListTradesRequest) returns (ListTradesResponse) {}
+  rpc ListTrades(TradesRequest) returns (TradesResponse) {}
+  rpc SubscribeTrades(TradeRequest) returns (stream TradeResponse) {}
 
   rpc Spread(SpreadRequest) returns (SpreadResponse) {}
 }
@@ -20,32 +21,40 @@ message SpreadRequest {
   optional string user_ne = 1;
 }
 
-message ListOrdersRequest {
+message OrdersRequest {
   types.OrderType order_type = 1;
   uint64 limit = 2;
   optional string user_ne = 3;
 }
 
-message ListOrderUpdatesRequest {
-  string user = 1;
+message OrderRequest {
+  optional string user = 1;
 }
 
-message ListTradesRequest {
+message TradesRequest {
   uint64 limit = 1;
+}
+
+message TradeRequest {
+  optional string user = 1;
 }
 
 // Responses
 
-message ListOrdersResponse {
+message OrdersResponse {
   repeated types.Order orders = 1;
 }
 
-message ListOrderUpdatesResponse {
+message OrderResponse {
   types.Order order = 1;
 }
 
-message ListTradesResponse {
+message TradesResponse {
   repeated types.Trade trades = 1;
+}
+
+message TradeResponse {
+  types.Trade trade = 1;
 }
 
 message SpreadResponse {

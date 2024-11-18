@@ -3,8 +3,8 @@ use sparker_core::repo::{order, trade};
 use sparker_proto::{
     api::{
         orderbook_server::{Orderbook, OrderbookServer},
-        ListOrderUpdatesRequest, ListOrderUpdatesResponse, ListOrdersRequest, ListOrdersResponse,
-        ListTradesRequest, ListTradesResponse, SpreadRequest, SpreadResponse,
+        OrderRequest, OrderResponse, OrdersRequest, OrdersResponse, SpreadRequest, SpreadResponse,
+        TradeRequest, TradeResponse, TradesRequest, TradesResponse,
     },
     types as proto,
 };
@@ -24,8 +24,8 @@ pub struct RpcServer {
 impl Orderbook for RpcServer {
     async fn list_orders(
         &self,
-        request: Request<ListOrdersRequest>,
-    ) -> Result<Response<ListOrdersResponse>, Status> {
+        request: Request<OrdersRequest>,
+    ) -> Result<Response<OrdersResponse>, Status> {
         let request = request.into_inner();
         let limit = request.limit;
         let order_type = proto::OrderType::from_repr(request.order_type);
@@ -45,15 +45,15 @@ impl Orderbook for RpcServer {
             .map(|order| order.into())
             .collect::<Vec<proto::Order>>();
 
-        let response = ListOrdersResponse { orders };
+        let response = OrdersResponse { orders };
         Ok(Response::new(response))
     }
 
-    type ListOrderUpdatesStream = ReceiverStream<Result<ListOrderUpdatesResponse, Status>>;
-    async fn list_order_updates(
+    type SubscribeOrderUpdatesStream = ReceiverStream<Result<OrderResponse, Status>>;
+    async fn subscribe_order_updates(
         &self,
-        request: Request<ListOrderUpdatesRequest>,
-    ) -> Result<Response<Self::ListOrderUpdatesStream>, Status> {
+        request: Request<OrderRequest>,
+    ) -> Result<Response<Self::SubscribeOrderUpdatesStream>, Status> {
         let request = request.into_inner();
         let user = request.user;
         let mut events_rx = self.events.subscribe();
@@ -63,9 +63,11 @@ impl Orderbook for RpcServer {
         tokio::spawn(async move {
             while let Ok(event) = events_rx.recv().await {
                 match event {
-                    // Only care about user order updates
-                    Event::OrderUpdated(order) if order.user == user => {
-                        let response = ListOrderUpdatesResponse {
+                    // Only care about user order updates if user is Some
+                    Event::OrderUpdated(order)
+                        if user.as_ref().map_or(true, |user| &order.user == user) =>
+                    {
+                        let response = OrderResponse {
                             order: Some(order.into()),
                         };
                         let _ = tx.send(Ok(response)).await;
@@ -99,8 +101,8 @@ impl Orderbook for RpcServer {
 
     async fn list_trades(
         &self,
-        request: Request<ListTradesRequest>,
-    ) -> Result<Response<ListTradesResponse>, Status> {
+        request: Request<TradesRequest>,
+    ) -> Result<Response<TradesResponse>, Status> {
         let request = request.into_inner();
         let limit = request.limit;
 
@@ -110,8 +112,38 @@ impl Orderbook for RpcServer {
             .map(|trade| trade.into())
             .collect::<Vec<proto::Trade>>();
 
-        let response = ListTradesResponse { trades };
+        let response = TradesResponse { trades };
         Ok(Response::new(response))
+    }
+
+    type SubscribeTradesStream = ReceiverStream<Result<TradeResponse, Status>>;
+    async fn subscribe_trades(
+        &self,
+        request: Request<TradeRequest>,
+    ) -> Result<Response<Self::SubscribeTradesStream>, Status> {
+        let request = request.into_inner();
+        let user = request.user;
+        let mut events_rx = self.events.subscribe();
+
+        let (tx, rx) = mpsc::channel(4);
+
+        tokio::spawn(async move {
+            while let Ok(event) = events_rx.recv().await {
+                match event {
+                    Event::Traded(trade)
+                        if user.as_ref().map_or(true, |user| &trade.user == user) =>
+                    {
+                        let response = TradeResponse {
+                            trade: Some(trade.into()),
+                        };
+                        let _ = tx.send(Ok(response)).await;
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 }
 
