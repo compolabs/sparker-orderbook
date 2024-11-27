@@ -1,0 +1,18 @@
+services:
+  # indexer:
+  #   build: .
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     RUST_LOG: sparker_indexer=debug
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/indexer
+  #   ports:
+  #     - 50051:50051
+  #   depends_on:
+  #     - postgres
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432

@@ -18,6 +18,3 @@ target/
 .Spotlight-V100
 .Trashes
 **/*.rs.bk
-
-# Env
-.env

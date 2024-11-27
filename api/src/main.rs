@@ -44,7 +44,7 @@ pub async fn serve(db_conn: Arc<DatabaseConnection>) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(AppState { db_conn });
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3011));
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("Failed to bind");
