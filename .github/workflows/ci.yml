@@ -31,7 +31,8 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ github.repository }}
 
-    - uses: actions/cache@v4
+    - name: Cache cargo
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/bin/
