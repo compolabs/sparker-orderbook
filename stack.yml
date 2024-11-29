@@ -1,0 +1,79 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      # Entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.grpc.address=:50051"
+      # SSL
+      - "--certificatesResolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesResolvers.letsencrypt.acme.email=vecheslav@sparker.space"
+      - "--certificatesResolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "50051:50051"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - letsencrypt:/letsencrypt
+
+  api:
+    image: ghcr.io/vecheslav/sparker-indexer:main
+    command: ["./sparker-api"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`indexer.sparker.space`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.api.loadbalancer.server.port=3011"
+      # Optional: HTTP to HTTPS redirect middleware
+      - "traefik.http.middlewares.api-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.api.middlewares=api-redirect"
+    environment:
+      RUST_LOG: sparker_api=debug
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/indexer
+    depends_on:
+      - postgres
+
+  indexer:
+    image: ghcr.io/vecheslav/sparker-indexer:main
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grpc.rule=(Host(`grpc.sparker.space`) && Header(`Content-Type`, `application/grpc`))"
+      - "traefik.http.routers.grpc.entrypoints=grpc"
+      - "traefik.http.routers.grpc.tls=true"
+      - "traefik.http.routers.grpc.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grpc.loadbalancer.server.port=50051"
+      - "traefik.http.services.grpc.loadbalancer.server.scheme=h2c"
+    environment:
+      RUST_LOG: sparker_indexer=debug
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/indexer
+      PANGEA_USERNAME: ${PANGEA_USERNAME}
+      PANGEA_PASSWORD: ${PANGEA_PASSWORD}
+      CHAIN_ID: ${CHAIN_ID}
+    deploy:
+      replicas: 1
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres
+    user: postgres
+    environment:
+      POSTGRES_DB: indexer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  letsencrypt:
+
