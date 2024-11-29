@@ -12,7 +12,9 @@ services:
   #     - postgres
   postgres:
     image: postgres
+    user: postgres
     environment:
+      POSTGRES_DB: indexer
       POSTGRES_PASSWORD: postgres
     ports:
       - 5432:5432

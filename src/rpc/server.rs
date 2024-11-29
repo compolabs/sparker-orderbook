@@ -151,7 +151,7 @@ pub async fn serve(
     db_conn: Arc<DatabaseConnection>,
     events: broadcast::Sender<Event>,
 ) -> Result<(), Error> {
-    let addr = SocketAddr::from(([127, 0, 0, 1], 50051));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 50051));
 
     Server::builder()
         .add_service(OrderbookServer::new(RpcServer { db_conn, events }))
