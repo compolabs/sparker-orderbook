@@ -5,8 +5,8 @@ RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/ca
 RUN cargo binstall -y cargo-chef sccache
 ENV RUSTC_WRAPPER=sccache SCCACHE_DIR=/sccache
 
-# 1.1 Install protobuf compiler
-RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
+# 1.1 Install protobuf compiler & supervisor
+RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev supervisor
 
 # 2. Prepare recipe file
 FROM base AS planner
@@ -21,17 +21,29 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
     cargo chef cook --recipe-path recipe.json --release
 
-# 3.1 Build project
 COPY . .
+
+# 3.1 Build indexer
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
     cargo build -p sparker-indexer --release
 
+# 3.2 Build api
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
+    cargo build -p sparker-api --release
+
 # 4. Runtime
 FROM gcr.io/distroless/cc-debian12 AS runtime
 WORKDIR /app
 COPY --from=builder /build/target/release/sparker-indexer .
+COPY --from=builder /build/target/release/sparker-api .
 COPY ./config.mainnet.json ./config.mainnet.json
 
-CMD ["./sparker-indexer"]
+COPY ./supervisord.conf /etc/supervisord.conf
+
+EXPOSE 50051 3011
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
