@@ -1,3 +1,4 @@
+use dotenv::dotenv;
 use sea_orm::DatabaseConnection;
 use sparker_core::repo::{order, trade};
 use sparker_proto::{
@@ -9,15 +10,14 @@ use sparker_proto::{
     types as proto,
 };
 use std::{net::SocketAddr, sync::Arc};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-use crate::{error::Error, events::Event};
+mod db;
 
 pub struct RpcServer {
     db_conn: Arc<DatabaseConnection>,
-    events: broadcast::Sender<Event>,
 }
 
 #[tonic::async_trait]
@@ -56,26 +56,26 @@ impl Orderbook for RpcServer {
     ) -> Result<Response<Self::SubscribeOrderUpdatesStream>, Status> {
         let request = request.into_inner();
         let user = request.user;
-        let mut events_rx = self.events.subscribe();
+        // let mut events_rx = self.events.subscribe();
 
         let (tx, rx) = mpsc::channel(4);
 
-        tokio::spawn(async move {
-            while let Ok(event) = events_rx.recv().await {
-                match event {
-                    // Only care about user order updates if user is Some
-                    Event::OrderUpdated(order)
-                        if user.as_ref().map_or(true, |user| &order.user == user) =>
-                    {
-                        let response = OrderResponse {
-                            order: Some(order.into()),
-                        };
-                        let _ = tx.send(Ok(response)).await;
-                    }
-                    _ => {}
-                }
-            }
-        });
+        // tokio::spawn(async move {
+        //     while let Ok(event) = events_rx.recv().await {
+        //         match event {
+        //             // Only care about user order updates if user is Some
+        //             Event::OrderUpdated(order)
+        //                 if user.as_ref().map_or(true, |user| &order.user == user) =>
+        //             {
+        //                 let response = OrderResponse {
+        //                     order: Some(order.into()),
+        //                 };
+        //                 let _ = tx.send(Ok(response)).await;
+        //             }
+        //             _ => {}
+        //         }
+        //     }
+        // });
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
@@ -123,40 +123,52 @@ impl Orderbook for RpcServer {
     ) -> Result<Response<Self::SubscribeTradesStream>, Status> {
         let request = request.into_inner();
         let user = request.user;
-        let mut events_rx = self.events.subscribe();
+        // let mut events_rx = self.events.subscribe();
 
         let (tx, rx) = mpsc::channel(4);
 
-        tokio::spawn(async move {
-            while let Ok(event) = events_rx.recv().await {
-                match event {
-                    Event::Traded(trade)
-                        if user.as_ref().map_or(true, |user| &trade.user == user) =>
-                    {
-                        let response = TradeResponse {
-                            trade: Some(trade.into()),
-                        };
-                        let _ = tx.send(Ok(response)).await;
-                    }
-                    _ => {}
-                }
-            }
-        });
+        // tokio::spawn(async move {
+        //     while let Ok(event) = events_rx.recv().await {
+        //         match event {
+        //             Event::Traded(trade)
+        //                 if user.as_ref().map_or(true, |user| &trade.user == user) =>
+        //             {
+        //                 let response = TradeResponse {
+        //                     trade: Some(trade.into()),
+        //                 };
+        //                 let _ = tx.send(Ok(response)).await;
+        //             }
+        //             _ => {}
+        //         }
+        //     }
+        // });
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 }
 
-pub async fn serve(
-    db_conn: Arc<DatabaseConnection>,
-    events: broadcast::Sender<Event>,
-) -> Result<(), Error> {
+pub async fn serve(db_conn: Arc<DatabaseConnection>) {
     let addr = SocketAddr::from(([0, 0, 0, 0], 50051));
 
-    Server::builder()
-        .add_service(OrderbookServer::new(RpcServer { db_conn, events }))
+    if let Err(e) = Server::builder()
+        .add_service(OrderbookServer::new(RpcServer { db_conn }))
         .serve(addr)
-        .await?;
+        .await
+    {
+        log::error!("Failed to serve: {}", e);
+    }
+}
 
-    Ok(())
+#[tokio::main]
+async fn main() {
+    dotenv().ok();
+    env_logger::init();
+
+    let db_conn = db::build_connection()
+        .await
+        .expect("Failed to connect to database");
+    let db_conn = Arc::new(db_conn);
+
+    log::info!("Starting RPC server...");
+    serve(db_conn).await;
 }

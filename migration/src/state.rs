@@ -4,6 +4,7 @@ use sea_orm_migration::prelude::*;
 pub enum State {
     Table,
     Id,
+    MarketId,
     LatestProcessedBlock,
     Timestamp,
 }

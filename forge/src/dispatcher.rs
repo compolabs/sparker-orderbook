@@ -1,9 +1,9 @@
 use sea_orm::DatabaseConnection;
 use sparker_core::{repo, LimitType, Order, OrderStatus, Trade, UpdateOrder};
 use std::sync::Arc;
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::Mutex;
 
-use crate::{events::Event, types::Receiver};
+use crate::types::Receiver;
 
 pub enum OperationMessage {
     Add(Operation),
@@ -18,22 +18,22 @@ pub enum Operation {
 
 pub struct OperationDispatcher {
     db_conn: Arc<DatabaseConnection>,
+    market_id: String,
     operations: Mutex<Vec<Operation>>,
     operation_rx: Receiver<OperationMessage>,
-    events: broadcast::Sender<Event>,
 }
 
 impl OperationDispatcher {
     pub fn new(
         db_conn: Arc<DatabaseConnection>,
         operation_rx: Receiver<OperationMessage>,
-        events: broadcast::Sender<Event>,
+        market_id: &str,
     ) -> Self {
         Self {
             db_conn,
+            market_id: market_id.to_owned(),
             operations: Mutex::new(Vec::new()),
             operation_rx,
-            events,
         }
     }
 
@@ -101,8 +101,12 @@ impl OperationDispatcher {
         // Clear operations after dispatch
         operations.clear();
 
-        if let Err(e) =
-            repo::state::Mutation::upsert_latest_processed_block(&self.db_conn, block).await
+        if let Err(e) = repo::state::Mutation::upsert_latest_processed_block(
+            &self.db_conn,
+            block,
+            &self.market_id,
+        )
+        .await
         {
             log::error!("UPSERT_LATEST_PROCESSED_BLOCK_ERROR: {}", e);
         }
@@ -144,7 +148,7 @@ impl OperationDispatcher {
             .await
             {
                 Ok(order) => {
-                    let _ = self.events.send(Event::OrderUpdated(order));
+                    // let _ = self.events.send(Event::OrderUpdated(order));
                 }
                 Err(e) => log::error!("UPDATE_ORDER_ERROR: {}", e),
             }
@@ -194,7 +198,7 @@ impl OperationDispatcher {
                     .await
                     {
                         Ok(order) => {
-                            let _ = self.events.send(Event::OrderUpdated(order));
+                            // let _ = self.events.send(Event::OrderUpdated(order));
                         }
                         Err(e) => log::error!("UPDATE_ORDER_ERROR: {}", e),
                     }
@@ -208,7 +212,7 @@ impl OperationDispatcher {
         match repo::trade::Mutation::insert_many(&self.db_conn, trades.clone()).await {
             Ok(_) => {
                 for trade in trades {
-                    let _ = self.events.send(Event::Traded(trade));
+                    // let _ = self.events.send(Event::Traded(trade));
                 }
             }
             Err(e) => log::error!("CREATE_TRADES_ERROR: {}", e),

@@ -1,11 +1,6 @@
-[package]
-name = "sparker-indexer"
-version = "0.1.0"
-edition = "2021"
-
 [workspace]
 resolver = "2"
-members = [".", "api", "core", "entity", "migration", "proto"]
+members = ["forge", "api", "rpc", "core", "entity", "migration", "proto"]
 
 [workspace.dependencies]
 sea-orm = "1.1.0"
@@ -22,26 +17,3 @@ spark-market-sdk = { git = "https://github.com/vecheslav/orderbook-contract.git"
 sparker-core = { path = "core" }
 sparker-proto = { path = "proto" }
 sparker-entity = { path = "entity" }
-
-[dependencies]
-sparker-core = { workspace = true, features = ["with-sea", "with-proto"] }
-sparker-entity = { workspace = true }
-sparker-proto = { workspace = true }
-thiserror = "1.0.62"
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
-tokio-stream = { workspace = true }
-sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }
-prost = { workspace = true }
-tonic = { workspace = true }
-chrono = { workspace = true, features = ["serde"] }
-dotenv = "0.15.0"
-log = "0.4"
-env_logger = "0.11.5"
-futures = "0.3.30"
-strum = { version = "0.26", features = ["derive"] }
-serde = { workspace = true, features = ["derive"] }
-serde_json = "1.0.128"
-fuels = { workspace = true }
-pangea-client = { git = "https://github.com/PangeaFoundation/pangea-client"}
-ethers-core = "2.0.14"
-rustc-hex = "2.1.0"

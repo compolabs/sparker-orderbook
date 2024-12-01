@@ -1,0 +1,16 @@
+[package]
+name = "sparker-rpc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sparker-core = { workspace = true, features = ["with-sea", "with-proto"] }
+sparker-proto = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+tokio-stream = { workspace = true }
+sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }
+prost = { workspace = true }
+tonic = { workspace = true }
+dotenv = "0.15.0"
+log = "0.4"
+env_logger = "0.11.5"

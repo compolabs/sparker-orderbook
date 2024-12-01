@@ -23,19 +23,20 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 COPY . .
 
-# 3.1 Build indexer & api
+# 3.1 Build forge, rpc and api
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
-    cargo build -p sparker-indexer -p sparker-api --release
+    cargo build -p sparker-forge -p sparker-rpc -p sparker-api --release
 
 # 4. Runtime
 FROM gcr.io/distroless/cc-debian12 AS runtime
 WORKDIR /app
-COPY --from=builder /build/target/release/sparker-indexer .
+COPY --from=builder /build/target/release/sparker-forge .
+COPY --from=builder /build/target/release/sparker-rpc .
 COPY --from=builder /build/target/release/sparker-api .
 COPY ./config.mainnet.json ./config.mainnet.json
 
 EXPOSE 50051 3011
 
-CMD ["./sparker-indexer"]
+CMD ["./sparker-forge"]

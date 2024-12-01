@@ -9,8 +9,8 @@ use std::{collections::HashSet, env, str::FromStr};
 
 use crate::{
     config::Config,
+    dispatcher::{Operation, OperationMessage},
     error::Error,
-    operation::{Operation, OperationMessage},
     pangea::event::PangeaEvent,
     types::Sender,
 };
@@ -28,6 +28,7 @@ pub struct PangeaIndexer {
 impl PangeaIndexer {
     pub async fn create(
         config: &Config,
+        market_id: &str,
         operation_tx: Sender<OperationMessage>,
     ) -> Result<Self, Error> {
         let chain_id = match env::var("CHAIN_ID").unwrap().as_str() {
@@ -58,7 +59,7 @@ impl PangeaIndexer {
             fuel_provider,
             operation_tx,
             chain_id,
-            contract_h256: H256::from_str(&config.market_id.to_string())?,
+            contract_h256: H256::from_str(market_id)?,
         })
     }
 

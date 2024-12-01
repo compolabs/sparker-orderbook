@@ -1,20 +1,18 @@
 services:
-  # indexer:
+  # forge:
   #   build: .
   #   env_file:
   #     - .env
   #   environment:
-  #     RUST_LOG: sparker_indexer=debug
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/indexer
-  #   ports:
-  #     - 50051:50051
+  #     RUST_LOG: sparker_forge=debug
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/orderbook
   #   depends_on:
   #     - postgres
   postgres:
     image: postgres
     user: postgres
     environment:
-      POSTGRES_DB: indexer
+      POSTGRES_DB: orderbook
       POSTGRES_PASSWORD: postgres
     ports:
       - 5432:5432

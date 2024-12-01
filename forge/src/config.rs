@@ -11,9 +11,6 @@ pub struct Config {
 
     /// Pangea start block
     pub pangea_start_block: i64,
-
-    /// Spark Market contract ID
-    pub market_id: ContractId,
 }
 
 impl Config {

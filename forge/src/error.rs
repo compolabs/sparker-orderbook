@@ -14,9 +14,6 @@ pub enum Error {
     #[error("Database: {0}")]
     Database(#[from] sea_orm::DbErr),
 
-    #[error("Tonic: {0}")]
-    Tonic(#[from] tonic::transport::Error),
-
     #[error("Pangea: {0}")]
     PangeaClient(#[from] pangea_client::Error),
 

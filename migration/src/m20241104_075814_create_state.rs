@@ -14,6 +14,7 @@ impl MigrationTrait for Migration {
                     .table(State::Table)
                     .if_not_exists()
                     .col(pk_auto(State::Id))
+                    .col(string_uniq(State::MarketId))
                     .col(big_integer(State::LatestProcessedBlock))
                     .col(timestamp(State::Timestamp))
                     .to_owned(),

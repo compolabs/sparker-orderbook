@@ -31,6 +31,7 @@ async fn main() {
         .expect("Failed to connect to database");
     let db_conn = Arc::new(db_conn);
 
+    log::info!("Starting API server...");
     serve(db_conn).await;
 }
 
@@ -49,7 +50,9 @@ pub async fn serve(db_conn: Arc<DatabaseConnection>) {
         .await
         .expect("Failed to bind");
 
-    axum::serve(listener, app).await.expect("Failed to serve");
+    if let Err(e) = axum::serve(listener, app).await {
+        log::error!("Failed to serve: {}", e);
+    }
 }
 
 pub fn internal_error<E>(err: E) -> (StatusCode, String)
