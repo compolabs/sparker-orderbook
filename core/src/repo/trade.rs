@@ -1,6 +1,5 @@
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, DatabaseConnection, DbErr as Error, EntityTrait,
-    QueryFilter, QueryOrder, QuerySelect, Set,
+    sea_query::OnConflict, ColumnTrait, Condition, DatabaseConnection, DbErr as Error, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set
 };
 use sparker_entity::trade::{self, Entity as TradeEntity};
 
@@ -89,5 +88,22 @@ impl Mutation {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn delete_many(
+        db_conn: &DatabaseConnection,
+        market_id: String,
+        from_block: i64,
+    ) -> Result<u64, Error> {
+        let res = TradeEntity::delete_many()
+            .filter(
+                Condition::all()
+                    .add(trade::Column::MarketId.eq(market_id))
+                    .add(trade::Column::BlockNumber.gte(from_block)),
+            )
+            .exec(db_conn)
+            .await?;
+
+        Ok(res.rows_affected)
     }
 }

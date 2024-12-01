@@ -8,6 +8,7 @@ use crate::types::Receiver;
 pub enum OperationMessage {
     Add(Operation),
     Dispatch(i64),
+    Prune(i64),
 }
 
 pub enum Operation {
@@ -42,6 +43,7 @@ impl OperationDispatcher {
             match message {
                 OperationMessage::Add(operation) => self.add(operation).await,
                 OperationMessage::Dispatch(block) => self.dispatch(block).await,
+                OperationMessage::Prune(block) => self.prune(block).await,
             }
         }
     }
@@ -112,6 +114,36 @@ impl OperationDispatcher {
         }
     }
 
+    /// Prunes the orders and trades from the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `from_block` - The block number to start pruning from.
+    ///
+    async fn prune(&self, from_block: i64) {
+        match repo::trade::Mutation::delete_many(&self.db_conn, self.market_id.clone(), from_block)
+            .await
+        {
+            Ok(count) => {
+                log::info!("TRADES_PRUNED: {}", count);
+            }
+            Err(e) => {
+                log::error!("PRUNE_TRADES_ERROR: {}", e);
+            }
+        }
+
+        match repo::order::Mutation::delete_many(&self.db_conn, self.market_id.clone(), from_block)
+            .await
+        {
+            Ok(count) => {
+                log::info!("ORDERS_PRUNED: {}", count);
+            }
+            Err(e) => {
+                log::error!("PRUNE_ORDERS_ERROR: {}", e);
+            }
+        }
+    }
+
     /// Processes the opening of orders by inserting them into the database.
     ///
     /// This method takes a vector of orders and attempts to insert them into the database.
@@ -150,7 +182,7 @@ impl OperationDispatcher {
                 Ok(order) => {
                     // let _ = self.events.send(Event::OrderUpdated(order));
                 }
-                Err(e) => log::error!("UPDATE_ORDER_ERROR: {}", e),
+                Err(e) => log::error!("CANCEL_ORDER_ERROR: {}", e),
             }
         }
     }

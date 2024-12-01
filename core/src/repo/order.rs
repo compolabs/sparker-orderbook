@@ -188,10 +188,15 @@ impl Mutation {
 
     pub async fn update(db_conn: &DatabaseConnection, data: UpdateOrder) -> Result<Order, Error> {
         let order = OrderEntity::find()
-            .filter(order::Column::OrderId.eq(data.order_id))
+            .filter(order::Column::OrderId.eq(&data.order_id))
             .one(db_conn)
             .await?;
-        let mut order: order::ActiveModel = order.unwrap().into();
+        let mut order: order::ActiveModel = order
+            .ok_or(Error::RecordNotFound(format!(
+                "Missing order {}",
+                data.order_id
+            )))?
+            .into();
 
         if let Some(amount) = data.amount {
             order.amount = Set(amount as i64);
@@ -201,6 +206,23 @@ impl Mutation {
         let order = OrderEntity::update(order).exec(db_conn).await?;
 
         Ok(Order::from(order))
+    }
+
+    pub async fn delete_many(
+        db_conn: &DatabaseConnection,
+        market_id: String,
+        from_block: i64,
+    ) -> Result<u64, Error> {
+        let res = OrderEntity::delete_many()
+            .filter(
+                Condition::all()
+                    .add(order::Column::MarketId.eq(market_id))
+                    .add(order::Column::BlockNumber.gte(from_block)),
+            )
+            .exec(db_conn)
+            .await?;
+
+        Ok(res.rows_affected)
     }
 }
 

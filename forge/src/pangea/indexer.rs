@@ -67,12 +67,24 @@ impl PangeaIndexer {
         // Get latest block number from blockchain
         let latest_block = self.fuel_provider.latest_block_height().await.unwrap() as i64;
 
+        log::info!("Prune newest orders & trades");
+        self.prune(latest_processed_block).await?;
+
         log::info!("Lastest processed block: {}", latest_processed_block);
         log::info!("Fetch historical events, until block: {}", latest_block);
         let latest_processed_block = self.catch_up(latest_processed_block, latest_block).await?;
 
         log::info!("Listen events, from block: {}", latest_processed_block);
         self.listen_events(latest_processed_block).await?;
+
+        Ok(())
+    }
+
+    pub async fn prune(&self, latest_processed_block: i64) -> Result<(), Error> {
+        log::info!("Prune newest orders & trades");
+        self.operation_tx
+            .send(OperationMessage::Prune(latest_processed_block))
+            .unwrap();
 
         Ok(())
     }
