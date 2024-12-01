@@ -17,6 +17,7 @@ pub struct Spread {
 
 #[derive(Deserialize, IntoParams)]
 pub struct SpreadParams {
+    market_id: String,
     user_ne: Option<String>,
 }
 
@@ -31,13 +32,13 @@ pub struct SpreadParams {
     )
 )]
 pub async fn spread(
-    Query(SpreadParams { user_ne }): Query<SpreadParams>,
+    Query(SpreadParams { market_id, user_ne }): Query<SpreadParams>,
     State(AppState { db_conn, .. }): State<AppState>,
 ) -> Result<Json<Spread>, (StatusCode, String)> {
-    let best_bid = order::Query::find_best_bid(&db_conn, user_ne.clone())
+    let best_bid = order::Query::find_best_bid(&db_conn, market_id.clone(), user_ne.clone())
         .await
         .map_err(internal_error)?;
-    let best_ask = order::Query::find_best_ask(&db_conn, user_ne)
+    let best_ask = order::Query::find_best_ask(&db_conn, market_id, user_ne)
         .await
         .map_err(internal_error)?;
 
@@ -46,6 +47,7 @@ pub async fn spread(
 
 #[derive(Deserialize, IntoParams)]
 pub struct BestOrderParams {
+    market_id: String,
     user_ne: Option<String>,
 }
 
@@ -60,10 +62,10 @@ pub struct BestOrderParams {
     )
 )]
 pub async fn best_bid(
-    Query(BestOrderParams { user_ne }): Query<BestOrderParams>,
+    Query(BestOrderParams { market_id, user_ne }): Query<BestOrderParams>,
     State(AppState { db_conn, .. }): State<AppState>,
 ) -> Result<Json<Option<Order>>, (StatusCode, String)> {
-    let res = order::Query::find_best_bid(&db_conn, user_ne)
+    let res = order::Query::find_best_bid(&db_conn, market_id, user_ne)
         .await
         .map_err(internal_error)?;
     Ok(Json(res))
@@ -80,10 +82,10 @@ pub async fn best_bid(
     )
 )]
 pub async fn best_ask(
-    Query(BestOrderParams { user_ne }): Query<BestOrderParams>,
+    Query(BestOrderParams { market_id, user_ne }): Query<BestOrderParams>,
     State(AppState { db_conn, .. }): State<AppState>,
 ) -> Result<Json<Option<Order>>, (StatusCode, String)> {
-    let res = order::Query::find_best_ask(&db_conn, user_ne)
+    let res = order::Query::find_best_ask(&db_conn, market_id, user_ne)
         .await
         .map_err(internal_error)?;
     Ok(Json(res))
@@ -91,6 +93,7 @@ pub async fn best_ask(
 
 #[derive(Deserialize, IntoParams)]
 pub struct ListOrdersParams {
+    market_id: String,
     order_type: Option<OrderType>,
     limit: Option<u64>,
     offset: Option<u64>,
@@ -109,6 +112,7 @@ pub struct ListOrdersParams {
 )]
 pub async fn list_orders(
     Query(ListOrdersParams {
+        market_id,
         order_type,
         limit,
         offset,
@@ -121,9 +125,10 @@ pub async fn list_orders(
 
     let res = match order_type {
         Some(order_type) => {
-            order::Query::find_by_type(&db_conn, order_type, limit, offset, user_ne).await
+            order::Query::find_by_type(&db_conn, market_id, order_type, limit, offset, user_ne)
+                .await
         }
-        None => order::Query::find(&db_conn, limit, offset).await,
+        None => order::Query::find(&db_conn, market_id, limit, offset).await,
     }
     .map_err(internal_error)?;
 

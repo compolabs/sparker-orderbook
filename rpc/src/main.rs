@@ -27,16 +27,24 @@ impl Orderbook for RpcServer {
         request: Request<OrdersRequest>,
     ) -> Result<Response<OrdersResponse>, Status> {
         let request = request.into_inner();
+        let market_id = request.market_id;
         let limit = request.limit;
         let order_type = proto::OrderType::from_repr(request.order_type);
         let user_ne = request.user_ne;
 
         let orders = match order_type {
             Some(order_type) => {
-                order::Query::find_by_type(&self.db_conn, order_type.into(), limit, 0, user_ne)
-                    .await
+                order::Query::find_by_type(
+                    &self.db_conn,
+                    market_id,
+                    order_type.into(),
+                    limit,
+                    0,
+                    user_ne,
+                )
+                .await
             }
-            None => order::Query::find(&self.db_conn, limit, 0).await,
+            None => order::Query::find(&self.db_conn, market_id, limit, 0).await,
         }
         .unwrap();
 
@@ -55,6 +63,7 @@ impl Orderbook for RpcServer {
         request: Request<OrderRequest>,
     ) -> Result<Response<Self::SubscribeOrderUpdatesStream>, Status> {
         let request = request.into_inner();
+        let market_id = request.market_id;
         let user = request.user;
         // let mut events_rx = self.events.subscribe();
 
@@ -85,12 +94,13 @@ impl Orderbook for RpcServer {
         request: Request<SpreadRequest>,
     ) -> Result<Response<SpreadResponse>, Status> {
         let request = request.into_inner();
+        let market_id = request.market_id;
         let user_ne = request.user_ne;
-        let best_bid = order::Query::find_best_bid(&self.db_conn, user_ne.clone())
+        let best_bid = order::Query::find_best_bid(&self.db_conn, market_id.clone(), user_ne.clone())
             .await
             .unwrap()
             .map(|o| o.into());
-        let best_ask = order::Query::find_best_ask(&self.db_conn, user_ne)
+        let best_ask = order::Query::find_best_ask(&self.db_conn, market_id, user_ne)
             .await
             .unwrap()
             .map(|o| o.into());
@@ -104,9 +114,10 @@ impl Orderbook for RpcServer {
         request: Request<TradesRequest>,
     ) -> Result<Response<TradesResponse>, Status> {
         let request = request.into_inner();
+        let market_id = request.market_id;
         let limit = request.limit;
 
-        let trades = trade::Query::find(&self.db_conn, limit, 0).await.unwrap();
+        let trades = trade::Query::find(&self.db_conn, market_id, limit, 0).await.unwrap();
         let trades = trades
             .into_iter()
             .map(|trade| trade.into())
@@ -122,6 +133,7 @@ impl Orderbook for RpcServer {
         request: Request<TradeRequest>,
     ) -> Result<Response<Self::SubscribeTradesStream>, Status> {
         let request = request.into_inner();
+        let market_id = request.market_id;
         let user = request.user;
         // let mut events_rx = self.events.subscribe();
 

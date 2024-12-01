@@ -11,6 +11,7 @@ use crate::{internal_error, AppState};
 
 #[derive(Deserialize, IntoParams)]
 pub struct ListTradesParams {
+    market_id: String,
     limit: Option<u64>,
     offset: Option<u64>,
 }
@@ -26,12 +27,16 @@ pub struct ListTradesParams {
     )
 )]
 pub async fn list_trades(
-    Query(ListTradesParams { limit, offset }): Query<ListTradesParams>,
+    Query(ListTradesParams {
+        market_id,
+        limit,
+        offset,
+    }): Query<ListTradesParams>,
     State(AppState { db_conn, .. }): State<AppState>,
 ) -> Result<Json<Vec<Trade>>, (StatusCode, String)> {
     let limit = limit.unwrap_or(50);
     let offset = offset.unwrap_or(0);
-    let res = trade::Query::find(&db_conn, limit, offset)
+    let res = trade::Query::find(&db_conn, market_id, limit, offset)
         .await
         .map_err(internal_error)?;
 

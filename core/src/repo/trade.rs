@@ -1,6 +1,6 @@
 use sea_orm::{
-    sea_query::OnConflict, DatabaseConnection, DbErr as Error, EntityTrait, QueryOrder,
-    QuerySelect, Set,
+    sea_query::OnConflict, ColumnTrait, DatabaseConnection, DbErr as Error, EntityTrait,
+    QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use sparker_entity::trade::{self, Entity as TradeEntity};
 
@@ -10,10 +10,12 @@ pub struct Query;
 impl Query {
     pub async fn find(
         db_conn: &DatabaseConnection,
+        market_id: String,
         limit: u64,
         offset: u64,
     ) -> Result<Vec<Trade>, Error> {
         let trades = TradeEntity::find()
+            .filter(trade::Column::MarketId.eq(market_id))
             .order_by_desc(trade::Column::Timestamp)
             .offset(offset)
             .limit(limit)
@@ -23,19 +25,6 @@ impl Query {
 
         Ok(trades)
     }
-
-    // pub async fn stream_by_user(
-    //     db_conn: &DatabaseConnection,
-    //     user: String,
-    // ) -> Result<(), Error> {
-    //     let mut stream = TradeEntity::find()
-    //         .filter(trade::Column::User.eq(user))
-    //         .order_by_desc(trade::Column::Timestamp)
-    //         .stream(db_conn)
-    //         .await?;
-    //
-    //     Ok(())
-    // }
 }
 
 pub struct Mutation;

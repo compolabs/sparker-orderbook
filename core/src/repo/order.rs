@@ -13,10 +13,11 @@ pub struct Query;
 impl Query {
     pub async fn find_best_bid(
         db_conn: &DatabaseConnection,
+        market_id: String,
         user_ne: Option<String>,
     ) -> Result<Option<Order>, Error> {
         let order = OrderEntity::find()
-            .filter(find_condition(OrderTypeSea::Buy, user_ne))
+            .filter(find_condition(market_id, OrderTypeSea::Buy, user_ne))
             .order_by_desc(order::Column::Price)
             .one(db_conn)
             .await?;
@@ -28,10 +29,11 @@ impl Query {
 
     pub async fn find_best_ask(
         db_conn: &DatabaseConnection,
+        market_id: String,
         user_ne: Option<String>,
     ) -> Result<Option<Order>, Error> {
         let order = OrderEntity::find()
-            .filter(find_condition(OrderTypeSea::Sell, user_ne))
+            .filter(find_condition(market_id, OrderTypeSea::Sell, user_ne))
             .order_by_asc(order::Column::Price)
             .one(db_conn)
             .await?;
@@ -57,11 +59,12 @@ impl Query {
 
     pub async fn find(
         db_conn: &DatabaseConnection,
+        market_id: String,
         limit: u64,
         offset: u64,
     ) -> Result<Vec<Order>, Error> {
         let orders = OrderEntity::find()
-            .filter(is_active_condition())
+            .filter(is_active_condition().add(order::Column::MarketId.eq(market_id)))
             .order_by_desc(order::Column::Timestamp)
             .offset(offset)
             .limit(limit)
@@ -92,13 +95,15 @@ impl Query {
 
     pub async fn find_by_type(
         db_conn: &DatabaseConnection,
+        market_id: String,
         order_type: OrderType,
         limit: u64,
         offset: u64,
         user_ne: Option<String>,
     ) -> Result<Vec<Order>, Error> {
         let order_type = OrderTypeSea::from(order_type);
-        let select = OrderEntity::find().filter(find_condition(order_type.clone(), user_ne));
+        let select =
+            OrderEntity::find().filter(find_condition(market_id, order_type.clone(), user_ne));
 
         // Sort orders by price depending on order type
         let orders = match order_type {
@@ -205,10 +210,15 @@ fn is_active_condition() -> Condition {
         .add(order::Column::Status.eq(OrderStatusSea::PartiallyMatched))
 }
 
-fn find_condition(order_type: OrderTypeSea, user_ne: Option<String>) -> Condition {
+fn find_condition(
+    market_id: String,
+    order_type: OrderTypeSea,
+    user_ne: Option<String>,
+) -> Condition {
     // Filter orders by type and active status
     let condition = Condition::all()
         .add(is_active_condition())
+        .add(order::Column::MarketId.eq(market_id))
         .add(order::Column::OrderType.eq(order_type));
 
     // Exclude orders by user

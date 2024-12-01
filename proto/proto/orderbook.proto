@@ -18,25 +18,30 @@ service Orderbook {
 message Empty {}
 
 message SpreadRequest {
-  optional string user_ne = 1;
+  string market_id = 1;
+  optional string user_ne = 2;
 }
 
 message OrdersRequest {
-  types.OrderType order_type = 1;
-  uint64 limit = 2;
-  optional string user_ne = 3;
+  string market_id = 1;
+  types.OrderType order_type = 2;
+  uint64 limit = 3;
+  optional string user_ne = 4;
 }
 
 message OrderRequest {
-  optional string user = 1;
+  string market_id = 1;
+  optional string user = 2;
 }
 
 message TradesRequest {
-  uint64 limit = 1;
+  string market_id = 1;
+  uint64 limit = 2;
 }
 
 message TradeRequest {
-  optional string user = 1;
+  string market_id = 1;
+  optional string user = 2;
 }
 
 // Responses
