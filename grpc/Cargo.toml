@@ -1,11 +1,12 @@
 [package]
-name = "sparker-rpc"
+name = "sparker-grpc"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 sparker-core = { workspace = true, features = ["with-sea", "with-proto"] }
 sparker-proto = { workspace = true }
+serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tokio-stream = { workspace = true }
 sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }

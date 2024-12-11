@@ -32,10 +32,10 @@ async fn main() {
     let db_conn = Arc::new(db_conn);
 
     log::info!("Starting API server...");
-    serve(db_conn).await;
+    serve(AppState { db_conn }).await;
 }
 
-pub async fn serve(db_conn: Arc<DatabaseConnection>) {
+pub async fn serve(state: AppState) {
     let app = Router::new()
         .route("/orders/list", get(list_orders))
         .route("/orders/spread", get(spread))
@@ -43,7 +43,7 @@ pub async fn serve(db_conn: Arc<DatabaseConnection>) {
         .route("/orders/best-ask", get(best_ask))
         .route("/trades/list", get(list_trades))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .with_state(AppState { db_conn });
+        .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3011));
     let listener = tokio::net::TcpListener::bind(addr)

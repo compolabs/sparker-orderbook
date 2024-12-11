@@ -1,15 +1,17 @@
 [workspace]
 resolver = "2"
-members = ["forge", "api", "rpc", "core", "entity", "migration", "proto"]
+members = ["forge", "api", "grpc", "proto", "core", "entity", "migration"]
 
 [workspace.dependencies]
 sea-orm = "1.1.0"
 serde = "1.0.210"
+serde_json = "1.0.128"
 tokio = "1.4.0"
 tokio-stream = "0.1.16"
 prost = "0.13"
 prost-types = "0.13"
 tonic = "0.12.3"
+futures = "0.3.30"
 utoipa = "5.1.3"
 chrono = "0.4.38"
 fuels = "0.66.9"

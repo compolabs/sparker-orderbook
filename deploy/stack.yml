@@ -7,6 +7,7 @@ services:
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.address=:50051"
       # SSL
       - "--certificatesResolvers.letsencrypt.acme.tlschallenge=true"
       - "--certificatesResolvers.letsencrypt.acme.email=vecheslav@sparker.space"
@@ -42,6 +43,26 @@ services:
     depends_on:
       - postgres
 
+  grpc:
+    image: ghcr.io/vecheslav/sparker-orderbook:main
+    command: ["./sparker-grpc"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grpc.rule=Host(`grpc.sparker.space`)"
+      - "traefik.http.routers.grpc.entrypoints=websecure"
+      - "traefik.http.routers.grpc.tls=true"
+      - "traefik.http.routers.grpc.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grpc.loadbalancer.server.port=50051"
+      - "traefik.http.services.grpc.loadbalancer.server.scheme=h2c"
+    env_file:
+      - .env
+    environment:
+      RUST_LOG: sparker_grpc=debug
+    networks:
+      - orderbook
+    depends_on:
+      - postgres
+
   forge-ethusdc:
     image: ghcr.io/vecheslav/sparker-orderbook:main
     env_file:
@@ -67,18 +88,6 @@ services:
       - orderbook
     deploy:
       replicas: 1
-    depends_on:
-      - postgres
-
-  rpc:
-    image: ghcr.io/vecheslav/sparker-orderbook:main
-    command: ["./sparker-rpc"]
-    env_file:
-      - .env
-    environment:
-      RUST_LOG: sparker_rpc=debug
-    networks:
-      - orderbook
     depends_on:
       - postgres
 

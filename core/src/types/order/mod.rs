@@ -44,6 +44,12 @@ mod with_sea {
             }
         }
     }
+
+    impl Order {
+        pub fn from_payload(payload: &str) -> Result<Self, serde_json::Error> {
+            serde_json::from_str::<sparker_entity::order::Model>(payload).map(Self::from)
+        }
+    }
 }
 
 #[cfg(feature = "with-proto")]

@@ -1,5 +1,6 @@
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, Condition, DatabaseConnection, DbErr as Error, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set
+    sea_query::OnConflict, ColumnTrait, Condition, DatabaseConnection, DbErr as Error, EntityTrait,
+    QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use sparker_entity::trade::{self, Entity as TradeEntity};
 
@@ -55,8 +56,7 @@ impl Mutation {
     }
 
     pub async fn insert_many(db_conn: &DatabaseConnection, data: Vec<Trade>) -> Result<(), Error> {
-        let len = data.len();
-        if len == 0 {
+        if data.is_empty() {
             return Ok(());
         }
 

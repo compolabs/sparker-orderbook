@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
     utoipa :: ToSchema,
 )]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "limit_type")]
+#[serde(rename_all = "snake_case")]
 pub enum LimitType {
     #[sea_orm(string_value = "fok")]
     Fok,
@@ -35,6 +36,7 @@ pub enum LimitType {
     utoipa :: ToSchema,
 )]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "order_status")]
+#[serde(rename_all = "snake_case")]
 pub enum OrderStatus {
     #[sea_orm(string_value = "cancelled")]
     Cancelled,
@@ -59,6 +61,7 @@ pub enum OrderStatus {
     utoipa :: ToSchema,
 )]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "order_type")]
+#[serde(rename_all = "snake_case")]
 pub enum OrderType {
     #[sea_orm(string_value = "buy")]
     Buy,

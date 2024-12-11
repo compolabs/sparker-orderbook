@@ -9,6 +9,7 @@ sparker-entity = { workspace = true, optional = true }
 utoipa = { workspace = true, features = ["axum_extras", "chrono"], optional = true }
 chrono = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 spark-market-sdk = { workspace = true }
 sea-orm = { workspace = true, optional = true }
 

@@ -4,6 +4,7 @@ mod m20241101_130253_create_types;
 mod m20241101_130314_create_orders;
 mod m20241101_225432_create_trades;
 mod m20241104_075814_create_state;
+mod m20241203_152440_create_order_updates;
 mod order;
 mod state;
 mod trade;
@@ -18,6 +19,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20241101_130314_create_orders::Migration),
             Box::new(m20241101_225432_create_trades::Migration),
             Box::new(m20241104_075814_create_state::Migration),
+            Box::new(m20241203_152440_create_order_updates::Migration),
         ]
     }
 }

@@ -169,7 +169,7 @@ impl OperationDispatcher {
     ///
     async fn process_cancel_orders(&self, order_ids: Vec<String>) {
         for order_id in order_ids {
-            match repo::order::Mutation::update(
+            if let Err(e) = repo::order::Mutation::update(
                 &self.db_conn,
                 UpdateOrder {
                     order_id,
@@ -179,10 +179,7 @@ impl OperationDispatcher {
             )
             .await
             {
-                Ok(order) => {
-                    // let _ = self.events.send(Event::OrderUpdated(order));
-                }
-                Err(e) => log::error!("CANCEL_ORDER_ERROR: {}", e),
+                log::error!("CANCEL_ORDER_ERROR: {}", e);
             }
         }
     }
@@ -219,7 +216,7 @@ impl OperationDispatcher {
                         _ => (OrderStatus::Matched, None),
                     };
 
-                    match repo::order::Mutation::update(
+                    if let Err(e) = repo::order::Mutation::update(
                         &self.db_conn,
                         UpdateOrder {
                             order_id: trade.order_id.clone(),
@@ -229,10 +226,7 @@ impl OperationDispatcher {
                     )
                     .await
                     {
-                        Ok(order) => {
-                            // let _ = self.events.send(Event::OrderUpdated(order));
-                        }
-                        Err(e) => log::error!("UPDATE_ORDER_ERROR: {}", e),
+                        log::error!("UPDATE_ORDER_ERROR: {}", e);
                     }
                 }
                 None => {
@@ -241,13 +235,8 @@ impl OperationDispatcher {
             }
         }
 
-        match repo::trade::Mutation::insert_many(&self.db_conn, trades.clone()).await {
-            Ok(_) => {
-                for trade in trades {
-                    // let _ = self.events.send(Event::Traded(trade));
-                }
-            }
-            Err(e) => log::error!("CREATE_TRADES_ERROR: {}", e),
+        if let Err(e) = repo::trade::Mutation::insert_many(&self.db_conn, trades.clone()).await {
+            log::error!("CREATE_TRADES_ERROR: {}", e);
         }
     }
 }

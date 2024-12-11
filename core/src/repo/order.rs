@@ -1,5 +1,5 @@
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, Condition, DatabaseConnection, DbErr as Error, EntityTrait,
+    sea_query::OnConflict, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait,
     QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use sparker_entity::{
@@ -15,7 +15,7 @@ impl Query {
         db_conn: &DatabaseConnection,
         market_id: String,
         user_ne: Option<String>,
-    ) -> Result<Option<Order>, Error> {
+    ) -> Result<Option<Order>, DbErr> {
         let order = OrderEntity::find()
             .filter(find_condition(market_id, OrderTypeSea::Buy, user_ne))
             .order_by_desc(order::Column::Price)
@@ -31,7 +31,7 @@ impl Query {
         db_conn: &DatabaseConnection,
         market_id: String,
         user_ne: Option<String>,
-    ) -> Result<Option<Order>, Error> {
+    ) -> Result<Option<Order>, DbErr> {
         let order = OrderEntity::find()
             .filter(find_condition(market_id, OrderTypeSea::Sell, user_ne))
             .order_by_asc(order::Column::Price)
@@ -46,7 +46,7 @@ impl Query {
     pub async fn find_by_id(
         db_conn: &DatabaseConnection,
         order_id: &str,
-    ) -> Result<Option<Order>, Error> {
+    ) -> Result<Option<Order>, DbErr> {
         let order = OrderEntity::find()
             .filter(order::Column::OrderId.eq(order_id))
             .one(db_conn)
@@ -62,7 +62,7 @@ impl Query {
         market_id: String,
         limit: u64,
         offset: u64,
-    ) -> Result<Vec<Order>, Error> {
+    ) -> Result<Vec<Order>, DbErr> {
         let orders = OrderEntity::find()
             .filter(is_active_condition().add(order::Column::MarketId.eq(market_id)))
             .order_by_desc(order::Column::Timestamp)
@@ -80,7 +80,7 @@ impl Query {
         user: String,
         limit: u64,
         offset: u64,
-    ) -> Result<Vec<Order>, Error> {
+    ) -> Result<Vec<Order>, DbErr> {
         let orders = OrderEntity::find()
             .filter(order::Column::User.eq(user))
             .order_by_desc(order::Column::Timestamp)
@@ -100,7 +100,7 @@ impl Query {
         limit: u64,
         offset: u64,
         user_ne: Option<String>,
-    ) -> Result<Vec<Order>, Error> {
+    ) -> Result<Vec<Order>, DbErr> {
         let order_type = OrderTypeSea::from(order_type);
         let select =
             OrderEntity::find().filter(find_condition(market_id, order_type.clone(), user_ne));
@@ -122,7 +122,7 @@ impl Query {
 
 pub struct Mutation;
 impl Mutation {
-    pub async fn insert(db_conn: &DatabaseConnection, data: Order) -> Result<(), Error> {
+    pub async fn insert(db_conn: &DatabaseConnection, data: Order) -> Result<(), DbErr> {
         let order = order::ActiveModel {
             tx_id: Set(data.tx_id),
             order_id: Set(data.order_id),
@@ -149,9 +149,8 @@ impl Mutation {
         Ok(())
     }
 
-    pub async fn insert_many(db_conn: &DatabaseConnection, data: Vec<Order>) -> Result<(), Error> {
-        let len = data.len();
-        if len == 0 {
+    pub async fn insert_many(db_conn: &DatabaseConnection, data: Vec<Order>) -> Result<(), DbErr> {
+        if data.is_empty() {
             return Ok(());
         }
 
@@ -186,13 +185,13 @@ impl Mutation {
         Ok(())
     }
 
-    pub async fn update(db_conn: &DatabaseConnection, data: UpdateOrder) -> Result<Order, Error> {
+    pub async fn update(db_conn: &DatabaseConnection, data: UpdateOrder) -> Result<Order, DbErr> {
         let order = OrderEntity::find()
             .filter(order::Column::OrderId.eq(&data.order_id))
             .one(db_conn)
             .await?;
         let mut order: order::ActiveModel = order
-            .ok_or(Error::RecordNotFound(format!(
+            .ok_or(DbErr::RecordNotFound(format!(
                 "Missing order {}",
                 data.order_id
             )))?
@@ -212,7 +211,7 @@ impl Mutation {
         db_conn: &DatabaseConnection,
         market_id: String,
         from_block: i64,
-    ) -> Result<u64, Error> {
+    ) -> Result<u64, DbErr> {
         let res = OrderEntity::delete_many()
             .filter(
                 Condition::all()
