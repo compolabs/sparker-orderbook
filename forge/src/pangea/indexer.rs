@@ -163,6 +163,9 @@ impl PangeaIndexer {
     /// * `latest_processed_block` - The block number of the latest processed block.
     ///
     async fn listen_events(&self, mut latest_processed_block: i64) -> Result<(), Error> {
+        let mut backoff = tokio::time::Duration::from_secs(1);
+        let max_backoff = tokio::time::Duration::from_secs(32);
+
         loop {
             let deltas_request = GetSparkOrderRequest {
                 from_block: Bound::Exact(latest_processed_block + 1),
@@ -172,36 +175,44 @@ impl PangeaIndexer {
                 ..Default::default()
             };
 
-            let stream = self
+            match self
                 .pangea_client
                 .get_fuel_spark_orders_by_format(deltas_request, Format::JsonStream, true)
                 .await
-                .expect("Failed to get fuel spark deltas");
-            futures::pin_mut!(stream);
+            {
+                Ok(stream) => {
+                    backoff = tokio::time::Duration::from_secs(1);
+                    futures::pin_mut!(stream);
 
-            while let Some(data) = stream.next().await {
-                match data {
-                    Ok(data) => {
-                        let data = String::from_utf8(data)?;
-                        let event = serde_json::from_str::<PangeaEvent>(&data)?;
-                        latest_processed_block = event.block_number;
+                    while let Some(data) = stream.next().await {
+                        match data {
+                            Ok(data) => {
+                                let data = String::from_utf8(data)?;
+                                let event = serde_json::from_str::<PangeaEvent>(&data)?;
+                                latest_processed_block = event.block_number;
 
-                        log::debug!("LATEST_PROCESSED_BLOCK: {}", latest_processed_block);
+                                log::debug!("LATEST_PROCESSED_BLOCK: {}", latest_processed_block);
 
-                        self.handle_event(&event).await;
-                        self.operation_tx
-                            .send(OperationMessage::Dispatch(latest_processed_block))
-                            .unwrap();
+                                self.handle_event(&event).await;
+                                self.operation_tx
+                                    .send(OperationMessage::Dispatch(latest_processed_block))
+                                    .unwrap();
+                            }
+                            Err(e) => {
+                                log::error!("Error in the stream of new orders (deltas): {e}");
+                                break;
+                            }
+                        }
                     }
-                    Err(e) => {
-                        log::error!("Error in the stream of new orders (deltas): {e}");
-                        break;
-                    }
+                }
+                Err(e) => {
+                    log::error!("Failed to get fuel spark deltas: {e}");
                 }
             }
 
             log::debug!("Reconnecting to listen for new deltas...");
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            tokio::time::sleep(backoff).await;
+            backoff = (backoff * 2).min(max_backoff);
         }
     }
 

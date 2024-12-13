@@ -20,9 +20,6 @@ pub enum Error {
     #[error("Fuel: {0}")]
     Fuel(#[from] fuels::types::errors::Error),
 
-    #[error("Missing order")]
-    MissingOrder,
-
     #[error("Invalid fuel chain id")]
     InvalidChainId,
 }

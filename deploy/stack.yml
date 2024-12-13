@@ -7,7 +7,6 @@ services:
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.websecure.address=:50051"
       # SSL
       - "--certificatesResolvers.letsencrypt.acme.tlschallenge=true"
       - "--certificatesResolvers.letsencrypt.acme.email=vecheslav@sparker.space"

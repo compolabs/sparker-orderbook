@@ -1,4 +1,3 @@
-use fuels::types::ContractId;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::BufReader, path::Path};
 
