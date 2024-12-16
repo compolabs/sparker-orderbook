@@ -6,6 +6,7 @@ use pangea_client::{
     ClientBuilder, Format, WsProvider,
 };
 use std::{collections::HashSet, env, str::FromStr};
+use tokio::time::{sleep, Duration};
 
 use crate::{
     config::Config,
@@ -163,8 +164,8 @@ impl PangeaIndexer {
     /// * `latest_processed_block` - The block number of the latest processed block.
     ///
     async fn listen_events(&self, mut latest_processed_block: i64) -> Result<(), Error> {
-        let mut backoff = tokio::time::Duration::from_secs(1);
-        let max_backoff = tokio::time::Duration::from_secs(32);
+        let mut backoff = Duration::from_secs(1);
+        let max_backoff = Duration::from_secs(32);
 
         loop {
             let deltas_request = GetSparkOrderRequest {
@@ -181,7 +182,7 @@ impl PangeaIndexer {
                 .await
             {
                 Ok(stream) => {
-                    backoff = tokio::time::Duration::from_secs(1);
+                    backoff = Duration::from_secs(1);
                     futures::pin_mut!(stream);
 
                     while let Some(data) = stream.next().await {
@@ -211,7 +212,7 @@ impl PangeaIndexer {
             }
 
             log::debug!("Reconnecting to listen for new deltas...");
-            tokio::time::sleep(backoff).await;
+            sleep(backoff).await;
             backoff = (backoff * 2).min(max_backoff);
         }
     }
