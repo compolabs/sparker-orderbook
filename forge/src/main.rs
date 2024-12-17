@@ -1,5 +1,6 @@
 use dotenv::dotenv;
 use error::Error;
+use migration::{Migrator, MigratorTrait};
 use sparker_core::repo::state;
 use std::{env, sync::Arc};
 use tokio::{
@@ -28,6 +29,8 @@ async fn main() -> Result<(), Error> {
     let config = Config::load("config.mainnet.json")?;
 
     let db_conn = db::build_connection().await?;
+    Migrator::up(&db_conn, None).await?;
+
     let db_conn = Arc::new(db_conn);
 
     let market_id = env::var("MARKET_ID").unwrap();

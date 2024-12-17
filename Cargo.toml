@@ -21,3 +21,4 @@ spark-market-sdk = { git = "https://github.com/vecheslav/orderbook-contract.git"
 sparker-core = { path = "core" }
 sparker-proto = { path = "proto" }
 sparker-entity = { path = "entity" }
+sparker-migration = { path = "migration" }

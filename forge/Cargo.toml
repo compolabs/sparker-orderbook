@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 sparker-core = { workspace = true, features = ["with-sea"] }
+sparker-migration = { workspace = true }
 thiserror = "1.0.62"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tokio-stream = { workspace = true }
@@ -17,6 +18,6 @@ futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 fuels = { workspace = true }
-pangea-client = { git = "https://github.com/PangeaFoundation/pangea-client"}
+pangea-client = { git = "https://github.com/PangeaFoundation/pangea-client", rev = "fc513ec" }
 ethers-core = "2.0.14"
 rustc-hex = "2.1.0"
