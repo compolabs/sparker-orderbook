@@ -19,6 +19,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+command: ["/app/sparker-grpc"]
+
 env:
   variables:
     - name: RUST_LOG
@@ -80,6 +82,18 @@ ingress:
    - secretName: sparker-tls
      hosts:
        - grpc.sparker.space
+
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  grpc:
+    port: 50051
+  initialDelaySeconds: 5
+  periodSeconds: 10
+readinessProbe:
+  grpc:
+    port: 50051
+  initialDelaySeconds: 5
+  periodSeconds: 10
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

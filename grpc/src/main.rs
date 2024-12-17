@@ -10,7 +10,7 @@ use sparker_proto::{
         OrderRequest, OrderResponse, OrdersRequest, OrdersResponse, SpreadRequest, SpreadResponse,
         TradeRequest, TradeResponse, TradesRequest, TradesResponse,
     },
-    types as proto,
+    types as proto, FILE_DESCRIPTOR_SET,
 };
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::{broadcast, mpsc};
@@ -173,7 +173,20 @@ impl Orderbook for RpcServer {
 async fn serve(db_conn: Arc<DatabaseConnection>, events_tx: broadcast::Sender<Event>) {
     let addr = SocketAddr::from(([0, 0, 0, 0], 50051));
 
+    let reflection_service = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .register_encoded_file_descriptor_set(tonic_health::pb::FILE_DESCRIPTOR_SET)
+        .build_v1()
+        .unwrap();
+
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<OrderbookServer<RpcServer>>()
+        .await;
+
     if let Err(e) = Server::builder()
+        .add_service(reflection_service)
+        .add_service(health_service)
         .add_service(OrderbookServer::new(RpcServer { db_conn, events_tx }))
         .serve(addr)
         .await

@@ -36,6 +36,12 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.command }}
+          command: {{ .Values.command }}
+          {{- end }}
+          {{- if .Values.args }}
+          args: {{ .Values.args }}
+          {{- end }}
           env:
             {{- range .Values.env.variables }}
             - name: {{ .name }}
@@ -48,6 +54,10 @@ spec:
             - name: grpc
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
