@@ -6,7 +6,7 @@ ingress:
     - host: sparker-grpc.production.sprk.fi
       paths:
         - path: /
-          pathType: ImplementationSpecific
+          pathType: Prefix
   tls:
     - secretName: sparker-grpc-tls
       hosts:
