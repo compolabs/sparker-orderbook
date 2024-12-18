@@ -11,11 +11,7 @@ on:
 
 jobs:
   docker:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform:
-          - linux/amd64
+    runs-on: ${{ vars.RUNNER_SCALE_SET }}
 
     steps:
     - name: Checkout repository
@@ -52,7 +48,6 @@ jobs:
       with:
         context: .
         file: Dockerfile
-        platforms: ${{ matrix.platform }}
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
