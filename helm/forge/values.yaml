@@ -35,6 +35,9 @@ env:
 secrets:
   secretName: sparker-orderbook
 
+vault:
+  name: sparker-orderbook
+
 database:
   name: sparker-orderbook-database
   instances: 1
