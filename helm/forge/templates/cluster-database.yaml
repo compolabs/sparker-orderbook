@@ -1,0 +1,17 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.database.name }}
+  labels:
+    {{- include "sparker-forge.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.database.instances }}
+  storage:
+    size: {{ .Values.database.storage.size }}
+  resources:
+    requests:
+      memory: {{ .Values.database.resources.requests.memory | quote }}
+      cpu: {{ .Values.database.resources.requests.cpu | quote }}
+    limits:
+      memory: {{ .Values.database.resources.limits.memory | quote }}
+      cpu: {{ .Values.database.resources.limits.cpu | quote }}

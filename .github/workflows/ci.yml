@@ -2,13 +2,18 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - dev
+      - main
+    tags:
+      - '*'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-and-push:
+  docker:
     runs-on: ubuntu-latest
     strategy:
       matrix:
