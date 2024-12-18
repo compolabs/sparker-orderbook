@@ -11,8 +11,19 @@ on:
 
 jobs:
   docker:
-    runs-on: default
+    runs-on: ${{ vars.RUNNER_SCALE_SET }}
     steps:
+    - name: Import Secrets from Vault
+      id: vault
+      uses: hashicorp/vault-action@v3
+      with:
+        url: ${{ vars.VAULT_ADDR }}
+        path: ${{ vars.VAULT_PATH }}
+        method: kubernetes
+        role: ${{ vars.VAULT_ROLE }}
+        secrets: |
+          ${{ vars.VAULT_PATH }}/data/${{ vars.VAULT_SECRET_PATH }} *
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
