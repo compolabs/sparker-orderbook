@@ -24,7 +24,7 @@ spec:
         {{- end }}
     spec:
       imagePullSecrets:
-        - name: {{ include "sparker-forge.fullname" . }}-registry
+        - name: {{ include "sparker-grpc.fullname" . }}-registry
       serviceAccountName: {{ include "sparker-grpc.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
