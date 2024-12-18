@@ -4,7 +4,7 @@ ingress:
     - host: sparker-grpc.staging.sprk.fi
       paths:
         - path: /
-          pathType: Prefix
+          pathType: ImplementationSpecific
   tls:
     - secretName: sparker-grpc-tls
       hosts:
