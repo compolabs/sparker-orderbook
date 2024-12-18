@@ -43,10 +43,7 @@ spec:
           args: {{ .Values.args }}
           {{- end }}
           env:
-            {{- range .Values.env.variables }}
-            - name: {{ .name }}
-              value: {{ .value | quote }}
-            {{- end }}
+            {{- toYaml .Values.env | nindent 12}}
           envFrom:
             - secretRef:
                 name: {{ .Values.secrets.secretName }}

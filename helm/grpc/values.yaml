@@ -22,12 +22,19 @@ fullnameOverride: ""
 command: ["/app/sparker-grpc"]
 
 env:
-  variables:
-    - name: RUST_LOG
-      value: "sparker_grpc=debug"
+  - name: RUST_LOG
+    value: "sparker_grpc=debug"
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: sparker-orderbook-database-app
+        key: uri
 
 secrets:
   secretName: sparker-orderbook
+
+vault:
+  name: sparker-orderbook
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
