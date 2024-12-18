@@ -20,7 +20,7 @@ env:
         key: uri
 
 secrets:
-  secretName: sparker-orderbook
+  secretName: sparker-grpc
 
 vault:
   name: sparker-orderbook
