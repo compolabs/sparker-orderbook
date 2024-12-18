@@ -1,0 +1,14 @@
+ingress:
+  enabled: true
+  hosts:
+    - host: sparker-grpc.staging.sprk.fi
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: sparker-grpc-tls
+      hosts:
+        - sparker-grpc.staging.sprk.fi
+
+vault:
+  mount: staging
