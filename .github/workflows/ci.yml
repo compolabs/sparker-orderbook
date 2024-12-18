@@ -11,8 +11,7 @@ on:
 
 jobs:
   docker:
-    runs-on: ${{ vars.RUNNER_SCALE_SET }}
-
+    runs-on: default
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
