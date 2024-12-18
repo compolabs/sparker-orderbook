@@ -51,7 +51,7 @@ service:
 
 ingress:
   enabled: true
-  className: ""
+  className: cilium
   annotations:
     kubernetes.io/tls-acme: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
