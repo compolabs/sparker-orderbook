@@ -90,6 +90,20 @@ services:
     depends_on:
       - postgres
 
+  forge-fuelusdc:
+    image: ghcr.io/vecheslav/sparker-orderbook:main
+    env_file:
+      - .env
+      - forge.env
+    environment:
+      MARKET_ID: 0x81e83f73530c262b0dbf5414649a875c48a48144de3c08ff68cb9d54b36f2eaa
+    networks:
+      - orderbook
+    deploy:
+      replicas: 1
+    depends_on:
+      - postgres
+
   postgres:
     image: postgres
     user: postgres
