@@ -68,8 +68,20 @@ ingress:
   annotations:
     kubernetes.io/tls-acme: "true"
 
-livenessProbe: {}
-readinessProbe: {}
+livenessProbe:
+  tcpSocket:
+    port: 3011
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 1
+  failureThreshold: 3
+readinessProbe:
+  tcpSocket:
+    port: 3011
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 1
+  failureThreshold: 3
 
 resources: {}
 
