@@ -8,24 +8,35 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
+command: ["/app/sparker-api"]
+
 env:
   - name: RUST_LOG
-    value: "sparker_forge=debug"
-  - name: CHAIN_ID
-    value: "FUEL"
+    value: "sparker_api=debug"
   - name: DATABASE_URL
     valueFrom:
       secretKeyRef:
         name: sparker-orderbook-database-app
         key: uri
-  - name: MARKET_ID
-    value: "0x81e83f73530c262b0dbf5414649a875c48a48144de3c08ff68cb9d54b36f2eaa"
 
 secrets:
-  secretName: sparker-forge
+  secretName: sparker-api
 
 vault:
   name: sparker-orderbook
+
+database:
+  name: sparker-orderbook-database
+  instances: 1
+  storage:
+    size: 1Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
 
 serviceAccount:
   create: true
@@ -48,10 +59,17 @@ securityContext: {}
   # runAsUser: 1000
 
 service:
-  enabled: false
+  type: ClusterIP
+  port: 3011
 
 ingress:
-  enabled: false
+  enabled: true
+  className: cilium
+  annotations:
+    kubernetes.io/tls-acme: "true"
+
+livenessProbe: {}
+readinessProbe: {}
 
 resources: {}
 

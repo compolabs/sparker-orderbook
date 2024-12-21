@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, routing::get, Router};
 use dotenv::dotenv;
+use migration::{Migrator, MigratorTrait};
 use sea_orm::DatabaseConnection;
 use std::{net::SocketAddr, sync::Arc};
 use utoipa::OpenApi;
@@ -29,6 +30,9 @@ async fn main() {
     let db_conn = db::build_connection()
         .await
         .expect("Failed to connect to database");
+    Migrator::up(&db_conn, None)
+        .await
+        .expect("Failed to run migrations");
     let db_conn = Arc::new(db_conn);
 
     log::info!("Starting API server...");

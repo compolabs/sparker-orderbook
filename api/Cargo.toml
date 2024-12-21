@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 sparker-core = { workspace = true, features = ["with-utoipa", "with-sea"] }
+sparker-migration = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 sea-orm = { workspace = true, features = [ "sqlx-postgres", "runtime-tokio-rustls" ] }

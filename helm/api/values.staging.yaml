@@ -1,0 +1,14 @@
+ingress:
+  enabled: true
+  hosts:
+    - host: sparker-api.staging.sprk.fi
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: sparker-api-tls
+      hosts:
+        - sparker-api.staging.sprk.fi
+
+vault:
+  mount: staging

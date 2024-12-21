@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 sparker-core = { workspace = true, features = ["with-sea"] }
-sparker-migration = { workspace = true }
 thiserror = "1.0.62"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tokio-stream = { workspace = true }
