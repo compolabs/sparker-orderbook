@@ -21,7 +21,7 @@ services:
       - letsencrypt:/letsencrypt
 
   api:
-    image: ghcr.io/vecheslav/sparker-orderbook:main
+    image: ghcr.io/compolabs/sparker-orderbook:main
     command: ["./sparker-api"]
     labels:
       - "traefik.enable=true"
@@ -43,7 +43,7 @@ services:
       - postgres
 
   grpc:
-    image: ghcr.io/vecheslav/sparker-orderbook:main
+    image: ghcr.io/compolabs/sparker-orderbook:main
     command: ["./sparker-grpc"]
     labels:
       - "traefik.enable=true"
@@ -63,7 +63,7 @@ services:
       - postgres
 
   forge-ethusdc:
-    image: ghcr.io/vecheslav/sparker-orderbook:main
+    image: ghcr.io/compolabs/sparker-orderbook:main
     env_file:
       - .env
       - forge.env
@@ -77,7 +77,7 @@ services:
       - postgres
 
   forge-usdcusdt:
-    image: ghcr.io/vecheslav/sparker-orderbook:main
+    image: ghcr.io/compolabs/sparker-orderbook:main
     env_file:
       - .env
       - forge.env
@@ -91,7 +91,7 @@ services:
       - postgres
 
   forge-fuelusdc:
-    image: ghcr.io/vecheslav/sparker-orderbook:main
+    image: ghcr.io/compolabs/sparker-orderbook:main
     env_file:
       - .env
       - forge.env
