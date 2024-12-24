@@ -38,7 +38,7 @@ spec:
             {{- toYaml .Values.env | nindent 12}}
           envFrom:
             - secretRef:
-                name: {{ .Values.secrets.secretName }}
+                name: {{ include "sparker-forge.fullname" . }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
