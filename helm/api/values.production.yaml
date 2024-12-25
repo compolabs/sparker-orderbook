@@ -10,6 +10,7 @@ ingress:
   tls:
     - secretName: sparker-api-tls
       hosts:
-        - sparker-api.production.sprk.fivault:
+        - sparker-api.production.sprk.fi
 
+vault:
   mount: production
