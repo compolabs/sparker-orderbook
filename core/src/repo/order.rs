@@ -64,7 +64,11 @@ impl Query {
         offset: u64,
     ) -> Result<Vec<Order>, DbErr> {
         let orders = OrderEntity::find()
-            .filter(is_active_condition().add(order::Column::MarketId.eq(market_id)))
+            .filter(
+                Condition::all()
+                    .add(is_active_condition())
+                    .add(order::Column::MarketId.eq(market_id)),
+            )
             .order_by_desc(order::Column::Timestamp)
             .offset(offset)
             .limit(limit)
