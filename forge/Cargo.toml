@@ -17,6 +17,6 @@ futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 fuels = { workspace = true }
-pangea-client = { git = "https://github.com/PangeaFoundation/pangea-client", rev = "fc513ec" }
+pangea-client = "0.3.2"
 ethers-core = "2.0.14"
 rustc-hex = "2.1.0"

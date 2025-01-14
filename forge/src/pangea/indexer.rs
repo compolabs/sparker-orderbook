@@ -16,7 +16,7 @@ use crate::{
     types::Sender,
 };
 
-const BATCH_SIZE: u64 = 10_000;
+const BATCH_SIZE: u64 = 100_000;
 
 pub struct PangeaIndexer {
     pangea_client: Client<WsProvider>,
