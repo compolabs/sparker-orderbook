@@ -36,6 +36,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             {{- toYaml .Values.env | nindent 12}}
+            {{- toYaml .Values.marketEnv | nindent 12}}
           envFrom:
             - secretRef:
                 name: {{ include "sparker-forge.fullname" . }}

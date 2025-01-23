@@ -1,12 +1,3 @@
-env:
-  - name: RUST_LOG
-    value: "sparker_forge=debug"
-  - name: CHAIN_ID
-    value: "FUEL"
-  - name: DATABASE_URL
-    valueFrom:
-      secretKeyRef:
-        name: sparker-orderbook-database-app
-        key: uri
+marketEnv:
   - name: MARKET_ID
     value: "0xdafe498b31f24ea5577055e86bf77e96bcba2c39a7ae47abaa819c303a45a352"
