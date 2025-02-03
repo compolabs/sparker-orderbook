@@ -2,8 +2,7 @@ replicaCount: 1
 
 image:
   repository: harbor.infra.sprk.fi/sprk/sparker-orderbook
-  pullPolicy: Always
-  tag: main
+  pullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
