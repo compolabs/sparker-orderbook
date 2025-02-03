@@ -37,15 +37,16 @@ jobs:
         username: ${{ vars.DOCKER_USERNAME }}
         password: ${{ env.DOCKER_PASSWORD }}
 
-    - name: Extract metadata (tags, labels) for Docker
+    - name: Extract metadata (tags, labels) for private registry
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_PROJECT }}/${{ vars.DOCKER_IMAGE }}
+        images: |
+          ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_PROJECT }}/${{ vars.DOCKER_IMAGE }}
         tags: |
+          type=ref,event=branch
+          type=ref,event=pr
           type=semver,pattern={{version}}
-        flavor: |
-          latest=false
 
     - name: Cache cargo
       uses: actions/cache@v4
