@@ -42,6 +42,10 @@ jobs:
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_PROJECT }}/${{ vars.DOCKER_IMAGE }}
+        tags: |
+          type=semver,pattern={{version}}
+        flavor: |
+          latest=false
 
     - name: Cache cargo
       uses: actions/cache@v4
