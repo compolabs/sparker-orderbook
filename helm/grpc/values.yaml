@@ -6,7 +6,6 @@ image:
   tag: main
 
 nameOverride: ""
-fullnameOverride: ""
 
 command: ["/app/sparker-grpc"]
 

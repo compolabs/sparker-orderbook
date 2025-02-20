@@ -46,7 +46,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 Selector labels
 */}}
 {{- define "sparker-grpc.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "sparker-grpc.name" . }}
+app.kubernetes.io/name: {{ include "sparker-grpc.fullname" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 

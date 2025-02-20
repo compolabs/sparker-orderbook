@@ -46,7 +46,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 Selector labels
 */}}
 {{- define "sparker-api.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "sparker-api.name" . }}
+app.kubernetes.io/name: {{ include "sparker-api.fullname" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
