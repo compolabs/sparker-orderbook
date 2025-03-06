@@ -17,12 +17,14 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "limit_type")]
 #[serde(rename_all = "snake_case")]
 pub enum LimitType {
-    #[sea_orm(string_value = "fok")]
-    Fok,
     #[sea_orm(string_value = "gtc")]
     Gtc,
     #[sea_orm(string_value = "ioc")]
     Ioc,
+    #[sea_orm(string_value = "fok")]
+    Fok,
+    #[sea_orm(string_value = "mkt")]
+    Mkt,
 }
 #[derive(
     Debug,
@@ -38,16 +40,16 @@ pub enum LimitType {
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "order_status")]
 #[serde(rename_all = "snake_case")]
 pub enum OrderStatus {
-    #[sea_orm(string_value = "cancelled")]
-    Cancelled,
-    #[sea_orm(string_value = "failed")]
-    Failed,
-    #[sea_orm(string_value = "matched")]
-    Matched,
     #[sea_orm(string_value = "new")]
     New,
     #[sea_orm(string_value = "partially_matched")]
     PartiallyMatched,
+    #[sea_orm(string_value = "matched")]
+    Matched,
+    #[sea_orm(string_value = "cancelled")]
+    Cancelled,
+    #[sea_orm(string_value = "failed")]
+    Failed,
 }
 #[derive(
     Debug,

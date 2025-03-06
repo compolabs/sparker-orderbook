@@ -38,15 +38,13 @@ impl PangeaEvent {
             })
     }
 
-    pub fn limit_type(&self) -> Option<LimitType> {
-        self.limit_type
-            .as_deref()
-            .and_then(|limit_type| match limit_type {
-                "GTC" => Some(LimitType::GTC),
-                "IOC" => Some(LimitType::IOC),
-                "FOK" => Some(LimitType::FOK),
-                _ => None,
-            })
+    pub fn limit_type(&self) -> LimitType {
+        match self.limit_type.as_deref() {
+            Some("FOK") => LimitType::FOK,
+            Some("IOC") => LimitType::IOC,
+            Some("MKT") => LimitType::MKT,
+            _ => LimitType::GTC,
+        }
     }
 
     pub fn trade_id(&self) -> String {
@@ -96,7 +94,7 @@ impl PangeaEvent {
                 tx_id: self.transaction_hash.clone(),
                 trade_id: self.trade_id(),
                 order_id: self.order_id.clone(),
-                limit_type: self.limit_type().unwrap(),
+                limit_type: self.limit_type(),
                 user: self.user.as_deref().unwrap().to_owned(),
                 size: amount as u64,
                 price: price as u64,

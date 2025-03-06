@@ -7,6 +7,7 @@ pub enum LimitType {
     GTC,
     IOC,
     FOK,
+    MKT,
 }
 
 impl fmt::Display for LimitType {
@@ -21,6 +22,7 @@ impl From<spark_market_sdk::LimitType> for LimitType {
             spark_market_sdk::LimitType::GTC => LimitType::GTC,
             spark_market_sdk::LimitType::IOC => LimitType::IOC,
             spark_market_sdk::LimitType::FOK => LimitType::FOK,
+            spark_market_sdk::LimitType::MKT => LimitType::MKT,
         }
     }
 }
@@ -31,6 +33,7 @@ impl From<LimitType> for spark_market_sdk::LimitType {
             LimitType::GTC => spark_market_sdk::LimitType::GTC,
             LimitType::IOC => spark_market_sdk::LimitType::IOC,
             LimitType::FOK => spark_market_sdk::LimitType::FOK,
+            LimitType::MKT => spark_market_sdk::LimitType::MKT,
         }
     }
 }
@@ -45,6 +48,7 @@ mod with_sea {
                 sea_orm_active_enums::LimitType::Gtc => LimitType::GTC,
                 sea_orm_active_enums::LimitType::Ioc => LimitType::IOC,
                 sea_orm_active_enums::LimitType::Fok => LimitType::FOK,
+                sea_orm_active_enums::LimitType::Mkt => LimitType::MKT,
             }
         }
     }
@@ -55,6 +59,7 @@ mod with_sea {
                 LimitType::GTC => sea_orm_active_enums::LimitType::Gtc,
                 LimitType::IOC => sea_orm_active_enums::LimitType::Ioc,
                 LimitType::FOK => sea_orm_active_enums::LimitType::Fok,
+                LimitType::MKT => sea_orm_active_enums::LimitType::Mkt,
             }
         }
     }
@@ -71,6 +76,7 @@ mod with_proto {
                 proto::LimitType::Gtc => LimitType::GTC,
                 proto::LimitType::Ioc => LimitType::IOC,
                 proto::LimitType::Fok => LimitType::FOK,
+                proto::LimitType::Mkt => LimitType::MKT,
             }
         }
     }
@@ -81,6 +87,7 @@ mod with_proto {
                 LimitType::GTC => proto::LimitType::Gtc,
                 LimitType::IOC => proto::LimitType::Ioc,
                 LimitType::FOK => proto::LimitType::Fok,
+                LimitType::MKT => proto::LimitType::Mkt,
             }
         }
     }

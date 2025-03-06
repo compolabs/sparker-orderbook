@@ -8,6 +8,7 @@ pub enum LimitTypeVariants {
     GTC,
     IOC,
     FOK,
+    MKT,
 }
 
 #[allow(clippy::enum_variant_names)]
