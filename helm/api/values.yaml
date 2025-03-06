@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: harbor.infra.sprk.fi/sprk/sparker-orderbook
+  repository: harbor.infra.v12.trade/sprk/sparker-orderbook
   pullPolicy: Always
   tag: main
 
