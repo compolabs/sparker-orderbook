@@ -208,10 +208,13 @@ impl OperationDispatcher {
             match order {
                 Some(order) => {
                     let (status, amount) = match trade.limit_type {
-                        LimitType::GTC | LimitType::FOK if order.amount > trade.size => (
-                            OrderStatus::PartiallyMatched,
-                            Some(order.amount - trade.size),
-                        ),
+                        LimitType::GTC | LimitType::MKT => {
+                            if order.amount > trade.size {
+                                (OrderStatus::PartiallyMatched, Some(order.amount - trade.size))
+                            } else {
+                                (OrderStatus::Matched, None)
+                            }
+                        }
                         // FOK or IOC as fully matched
                         _ => (OrderStatus::Matched, None),
                     };
