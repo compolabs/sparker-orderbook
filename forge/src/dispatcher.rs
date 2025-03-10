@@ -5,91 +5,91 @@ use tokio::sync::Mutex;
 
 use crate::types::Receiver;
 
-pub enum OperationMessage {
-    Add(Operation),
+pub enum Operation {
+    Update(Update),
     Dispatch(i64),
     Prune(i64),
 }
 
-pub enum Operation {
+pub enum Update {
     OpenOrder(sparker_core::Order),
     Trade(sparker_core::Trade),
     CancelOrder(String),
 }
 
 pub struct OperationDispatcher {
-    db_conn: Arc<DatabaseConnection>,
     market_id: String,
-    operations: Mutex<Vec<Operation>>,
-    operation_rx: Receiver<OperationMessage>,
+    db_conn: Arc<DatabaseConnection>,
+    updates: Mutex<Vec<Update>>,
+    operation_rx: Receiver<Operation>,
 }
 
 impl OperationDispatcher {
     pub fn new(
+        market_id: String,
         db_conn: Arc<DatabaseConnection>,
-        operation_rx: Receiver<OperationMessage>,
-        market_id: &str,
+        operation_rx: Receiver<Operation>,
     ) -> Self {
         Self {
+            market_id,
             db_conn,
-            market_id: market_id.to_owned(),
-            operations: Mutex::new(Vec::new()),
+            updates: Mutex::new(Vec::new()),
             operation_rx,
         }
     }
 
     pub async fn start(&self) {
-        while let Some(message) = self.operation_rx.lock().await.recv().await {
-            match message {
-                OperationMessage::Add(operation) => self.add(operation).await,
-                OperationMessage::Dispatch(block) => self.dispatch(block).await,
-                OperationMessage::Prune(block) => self.prune(block).await,
+        while let Some(operation) = self.operation_rx.lock().await.recv().await {
+            match operation {
+                Operation::Update(update) => self.update(update).await,
+                Operation::Dispatch(block) => self.dispatch(block).await,
+                Operation::Prune(from_block) => self.prune(from_block).await,
             }
         }
     }
 
-    /// Adds an operation to the queue.
+    /// Adds an update to the queue.
     ///
     /// # Arguments
     ///
-    /// * `operation` - The operation to be added to the queue.
-    pub async fn add(&self, operation: Operation) {
-        let mut operations = self.operations.lock().await;
-        operations.push(operation);
+    /// * `update` - The update to be added to the queue.
+    pub async fn update(&self, update: Update) {
+        let mut updates = self.updates.lock().await;
+        updates.push(update);
     }
 
-    /// Dispatches the operations for a given block.
+    /// Dispatches the updates for a given block.
     ///
-    /// This method processes the operations by extracting open orders, cancel orders, and trades,
+    /// This method processes the updates by extracting open orders, cancel orders, and trades,
     /// and then processes them in the following order:
     /// 1. Open orders
     /// 2. Trade and update orders
     /// 3. Cancel orders
     ///
-    /// After processing, it clears the operations and updates the latest processed block in the database.
+    /// After processing, it clears the updates and updates the latest processed block in the database.
     ///
     /// # Arguments
     ///
     /// * `block` - The block number to be processed.
     ///
     pub async fn dispatch(&self, block: i64) {
-        let mut operations = self.operations.lock().await;
-        let open_orders = extract_operations(&operations, |operation| {
-            if let Operation::OpenOrder(data) = operation {
+        let mut updates = self.updates.lock().await;
+        let open_orders = extract_updates(&updates, |update| {
+            if let Update::OpenOrder(data) = update {
                 Some(data.clone())
             } else {
                 None
             }
         });
-        let cancel_order_ids = extract_operations(&operations, |operation| {
-            if let Operation::CancelOrder(data) = operation {
+        let cancel_order_ids = extract_updates(&updates, |update| {
+            if let Update::CancelOrder(data) = update {
                 Some(data.clone())
             } else {
                 None
             }
         });
-        let trades = extract_operations(&operations, |operation| {
-            if let Operation::Trade(data) = operation {
+        let trades = extract_updates(&updates, |update| {
+            if let Update::Trade(data) = update {
                 Some(data.clone())
             } else {
                 None
@@ -101,7 +101,7 @@ impl OperationDispatcher {
         self.process_cancel_orders(cancel_order_ids).await;
 
         // Clear operations after dispatch
-        operations.clear();
+        updates.clear();
 
         if let Err(e) = repo::state::Mutation::upsert_latest_processed_block(
             &self.db_conn,
@@ -121,26 +121,16 @@ impl OperationDispatcher {
     /// * `from_block` - The block number to start pruning from.
     ///
     async fn prune(&self, from_block: i64) {
-        match repo::trade::Mutation::delete_many(&self.db_conn, self.market_id.clone(), from_block)
+        if let Err(e) = repo::trade::Mutation::delete_many(&self.db_conn, self.market_id.clone(), from_block)
             .await
         {
-            Ok(count) => {
-                log::info!("TRADES_PRUNED: {}", count);
-            }
-            Err(e) => {
-                log::error!("PRUNE_TRADES_ERROR: {}", e);
-            }
+            log::error!("PRUNE_TRADES_ERROR: {}", e);
         }
 
-        match repo::order::Mutation::delete_many(&self.db_conn, self.market_id.clone(), from_block)
+        if let Err(e) = repo::order::Mutation::delete_many(&self.db_conn, self.market_id.clone(), from_block)
             .await
         {
-            Ok(count) => {
-                log::info!("ORDERS_PRUNED: {}", count);
-            }
-            Err(e) => {
-                log::error!("PRUNE_ORDERS_ERROR: {}", e);
-            }
+            log::error!("PRUNE_ORDERS_ERROR: {}", e);
         }
     }
 
@@ -244,9 +234,9 @@ impl OperationDispatcher {
     }
 }
 
-fn extract_operations<T, F>(operations: &[Operation], filter_fn: F) -> Vec<T>
+fn extract_updates<T, F>(updates: &[Update], filter_fn: F) -> Vec<T>
 where
-    F: Fn(&Operation) -> Option<T>,
+    F: Fn(&Update) -> Option<T>,
 {
-    operations.iter().filter_map(filter_fn).collect()
+    updates.iter().filter_map(filter_fn).collect()
 }

@@ -9,8 +9,7 @@ use std::{collections::HashSet, env, str::FromStr};
 use tokio::time::{sleep, Duration};
 
 use crate::{
-    config::Config,
-    dispatcher::{Operation, OperationMessage},
+    dispatcher::{Operation, Update},
     error::Error,
     pangea::event::PangeaEvent,
     types::Sender,
@@ -21,22 +20,23 @@ const BATCH_SIZE: u64 = 100_000;
 pub struct PangeaIndexer {
     pangea_host: String,
     provider: Provider,
-    operation_tx: Sender<OperationMessage>,
+    operation_tx: Sender<Operation>,
     chain_id: ChainId,
-    contract_h256: H256,
+    market_id: String,
+    market_name: String,
 }
 
 impl PangeaIndexer {
     pub async fn create(
-        config: &Config,
+        host: &str,
         market_id: &str,
-        operation_tx: Sender<OperationMessage>,
+        market_name: &str,
+        operation_tx: Sender<Operation>,
     ) -> Result<Self, Error> {
         let chain_id = match env::var("CHAIN_ID").unwrap().as_str() {
             "FUEL" => ChainId::FUEL,
             _ => ChainId::FUELTESTNET,
         };
-        let pangea_host = config.pangea_host.clone();
 
         let provider_url = match chain_id {
             ChainId::FUEL => Ok("mainnet.fuel.network"),
@@ -45,14 +45,13 @@ impl PangeaIndexer {
         }?;
         let provider = Provider::connect(provider_url).await?;
 
-        log::info!("CHAIN: {:?}, PROVIDER: {:?}", chain_id, provider_url);
-
         Ok(Self {
-            pangea_host,
+            pangea_host: host.to_string(),
             provider,
             operation_tx,
             chain_id,
-            contract_h256: H256::from_str(market_id)?,
+            market_id: market_id.to_string(),
+            market_name: market_name.to_string(),
         })
     }
 
@@ -73,23 +72,18 @@ impl PangeaIndexer {
         // Get latest block number from blockchain
         let latest_block = self.provider.latest_block_height().await.unwrap() as i64;
 
-        log::info!("Prune newest orders & trades");
         self.prune(latest_processed_block).await?;
-
-        log::info!("Lastest processed block: {}", latest_processed_block);
-        log::info!("Fetch historical events, until block: {}", latest_block);
         let latest_processed_block = self.catch_up(latest_processed_block, latest_block).await?;
 
-        log::info!("Listen events, from block: {}", latest_processed_block);
+        log::info!("[{}] LISTEN EVENTS FROM BLOCK: {}", self.market_name, latest_processed_block);
         self.listen_events(latest_processed_block).await?;
 
         Ok(())
     }
 
     pub async fn prune(&self, latest_processed_block: i64) -> Result<(), Error> {
-        log::info!("Prune newest orders & trades");
         self.operation_tx
-            .send(OperationMessage::Prune(latest_processed_block))
+            .send(Operation::Prune(latest_processed_block))
             .unwrap();
 
         Ok(())
@@ -117,10 +111,11 @@ impl PangeaIndexer {
         while latest_processed_block < to_block {
             let to_block = (latest_processed_block + BATCH_SIZE as i64).min(to_block);
 
+            let contract_h256 = H256::from_str(&self.market_id)?;
             let batch_request = GetSparkOrderRequest {
                 from_block: Bound::Exact(latest_processed_block),
                 to_block: Bound::Exact(to_block),
-                market_id__in: HashSet::from([self.contract_h256]),
+                market_id__in: HashSet::from([contract_h256]),
                 chains: HashSet::from([self.chain_id]),
                 ..Default::default()
             };
@@ -150,10 +145,14 @@ impl PangeaIndexer {
 
             // Dispatch operations
             self.operation_tx
-                .send(OperationMessage::Dispatch(latest_processed_block))
+                .send(Operation::Dispatch(latest_processed_block))
                 .unwrap();
 
-            log::debug!("PROCESSED: {}", latest_processed_block);
+            log::debug!(
+                "[{}] PROCESSED: {}",
+                self.market_name,
+                latest_processed_block
+            );
             latest_processed_block = to_block;
         }
 
@@ -176,10 +175,11 @@ impl PangeaIndexer {
         loop {
             match self.create_pangea_client().await {
                 Ok(client) => {
+                    let contract_h256 = H256::from_str(&self.market_id)?;
                     let deltas_request = GetSparkOrderRequest {
                         from_block: Bound::Exact(latest_processed_block + 1),
                         to_block: Bound::Subscribe,
-                        market_id__in: HashSet::from([self.contract_h256]),
+                        market_id__in: HashSet::from([contract_h256]),
                         chains: HashSet::from([self.chain_id]),
                         ..Default::default()
                     };
@@ -200,15 +200,14 @@ impl PangeaIndexer {
                                         latest_processed_block = event.block_number;
 
                                         log::debug!(
-                                            "LATEST_PROCESSED_BLOCK: {}",
+                                            "[{}] LATEST_PROCESSED_BLOCK: {}",
+                                            self.market_name,
                                             latest_processed_block
                                         );
 
                                         self.handle_event(&event).await;
                                         self.operation_tx
-                                            .send(OperationMessage::Dispatch(
-                                                latest_processed_block,
-                                            ))
+                                            .send(Operation::Dispatch(latest_processed_block))
                                             .unwrap();
                                     }
                                     Err(e) => {
@@ -230,7 +229,7 @@ impl PangeaIndexer {
                 }
             }
 
-            log::debug!("Reconnecting to listen for new deltas...");
+            log::debug!("[{}] RECONNECTING...", self.market_name);
             sleep(backoff).await;
             backoff = (backoff * 2).min(max_backoff);
         }
@@ -251,20 +250,20 @@ impl PangeaIndexer {
                 "Open" => {
                     if let Some(order) = event.build_order() {
                         self.operation_tx
-                            .send(OperationMessage::Add(Operation::OpenOrder(order)))
+                            .send(Operation::Update(Update::OpenOrder(order)))
                             .unwrap();
                     }
                 }
                 "Trade" => {
                     if let Some(trade) = event.build_trade() {
                         self.operation_tx
-                            .send(OperationMessage::Add(Operation::Trade(trade)))
+                            .send(Operation::Update(Update::Trade(trade)))
                             .unwrap();
                     }
                 }
                 "Cancel" => {
                     self.operation_tx
-                        .send(OperationMessage::Add(Operation::CancelOrder(
+                        .send(Operation::Update(Update::CancelOrder(
                             event.order_id.clone(),
                         )))
                         .unwrap();
